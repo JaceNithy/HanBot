@@ -86,7 +86,7 @@ local function OnTick()
                 local hitchance = 50 / 100
                 local targetPos = target.pos + (target.pos - player.pos):norm() * target.moveSpeed * hitchance * 0.5     
                 for i = 15, 450, 75 do
-                    local col1 = target.pos + (target.pos - player.pos):norm() * i
+                    local col1 = targetPos + (targetPos - player.pos):norm() * i
                     local col2 = target.pos + (target.pos - player.pos):norm() * i
                     if navmesh.isWall(col1) and navmesh.isWall(col2) then
                         player:castSpell("obj", 2, target)
