@@ -82,14 +82,24 @@ local function OnTick()
     if player:spellSlot(2).state ~= 0 then return end
     if orb.combat.target then
         if menu.combo.EC:get() and player.pos:dist(target.pos) < 1000 then
-            if (navmesh.isWall(target.pos:ext(player.pos, -450)) or navmesh.isWall(target.pos:ext(player.pos, -450/2)) or navmesh.isWall(target.pos:ext(player.pos, -450/3))) then
-                local hitchance = 50 / 100
-                local targetPos = target.pos + (target.pos - player.pos):norm() * target.moveSpeed * hitchance * 0.5     
-                for i = 15, 450, 75 do
-                    local col1 = targetPos + (targetPos - player.pos):norm() * i
-                    local col2 = target.pos + (target.pos - player.pos):norm() * i
-                    if navmesh.isWall(col1) and navmesh.isWall(col2) then
-                        player:castSpell("obj", 2, target)
+            local enemiesCount = #count_enemies_in_range(player.pos, 1200)
+            if 	enemiesCount > 1 and enemiesCount <= 3 then
+                for i= 15, 450, 75 do
+                   local vector3 = target.pos:ext(player.pos, -i)
+                    if navmesh.isWall(vector3) then
+                        return true
+                    end
+                end
+            else
+                if (navmesh.isWall(target.pos:ext(player.pos, -450)) or navmesh.isWall(target.pos:ext(player.pos, -450/2)) or navmesh.isWall(target.pos:ext(player.pos, -450/3))) then
+                    local hitchance = 50 / 100
+                    local targetPos = target.pos + (target.pos - player.pos):norm() * target.moveSpeed * hitchance * 0.5     
+                    for i = 15, 450, 75 do
+                        local col1 = targetPos + (targetPos - player.pos):norm() * i
+                        local col2 = target.pos + (target.pos - player.pos):norm() * i
+                        if navmesh.isWall(col1) and navmesh.isWall(col2) then
+                            player:castSpell("obj", 2, target)
+                        end 
                     end 
                 end 
             end 
