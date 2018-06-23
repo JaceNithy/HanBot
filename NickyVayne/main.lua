@@ -64,6 +64,18 @@ local function obtermeta()
 	return ts.get_result(targets).obj
 end
 
+
+local function count_enemies_in_range(pos, range) -- ty Kornis Thank you for allowing your code
+	local enemies_in_range = {}
+	for i = 0, objManager.enemies_n - 1 do
+		local enemy = objManager.enemies[i]
+		if pos:dist(enemy.pos) < range and common.IsValidTarget(enemy) then
+			enemies_in_range[#enemies_in_range + 1] = enemy
+		end
+	end
+	return enemies_in_range
+end
+
 local function OnTick()
     local target = obtermeta();
 	if not target then return end
@@ -82,6 +94,35 @@ local function OnTick()
                 end 
             end 
         end 
+    end
+    local target = obtermeta();
+    if not target then return end
+    if orb.combat.target and menu.chave.CK:get() then
+        if #count_enemies_in_range(player.pos, spellR.range) >= menu.combo.Rhitenemy:get() then
+            player:castSpell("pos", 3, player.pos)
+        end 
+    end 
+    local target = obtermeta();
+	if not target then return end
+    if menu.combo.Qmode:get() == 2 and orb.combat.target and menu.chave.CK:get() then
+    	local range = menu.combo.DistanceAA:get() + player.attackRange + (player.boundingRadius + target.boundingRadius)
+		if target.pos:dist(player.pos) <= range then
+			player:castSpell("pos", 0, game.mousePos)
+		end
+    end  
+    local target = obtermeta();
+    if not target then return end    
+    if #count_enemies_in_range(player.pos, player.attackRange) > 1 then
+        player:castSpell("obj", 2, target)
+    end   
+    local target = obtermeta();
+	if not target then return end
+    if player:spellSlot(2).state ~= 0 then return end
+    if orb.combat.target then
+        local QIsRange = player.attackRange + (player.boundingRadius + target.boundingRadius)
+        if player.pos:dist(target.pos) < QIsRange and target.isDashing then
+            player:castSpell("obj", 2, target)
+        end 
     end 
 end 
 
@@ -93,16 +134,6 @@ local function OnDraw()
     end 
 end 
 
-local function count_enemies_in_range(pos, range) -- ty Kornis Thank you for allowing your code
-	local enemies_in_range = {}
-	for i = 0, objManager.enemies_n - 1 do
-		local enemy = objManager.enemies[i]
-		if pos:dist(enemy.pos) < range and common.IsValidTarget(enemy) then
-			enemies_in_range[#enemies_in_range + 1] = enemy
-		end
-	end
-	return enemies_in_range
-end
 -------
 --Spells Target--
 -------
@@ -142,37 +173,6 @@ local function IsCondemnable(target)
     end
 end
 
-local function OnPosAttack()
-    local target = obtermeta();
-    if not target then return end
-    if orb.combat.target and menu.chave.CK:get() then
-        if #count_enemies_in_range(player.pos, spellR.range) >= menu.combo.Rhitenemy:get() then
-            player:castSpell("pos", 3, player.pos)
-        end 
-    end 
-    local target = obtermeta();
-	if not target then return end
-    if menu.combo.Qmode:get() == 2 and orb.combat.target and menu.chave.CK:get() then
-    	local range = menu.combo.DistanceAA:get() + player.attackRange + (player.boundingRadius + target.boundingRadius)
-		if target.pos:dist(player.pos) <= range then
-			player:castSpell("pos", 0, game.mousePos)
-		end
-    end  
-    local target = obtermeta();
-    if not target then return end    
-    if #count_enemies_in_range(player.pos, player.attackRange) > 1 then
-        player:castSpell("obj", 2, target)
-    end   
-    local target = obtermeta();
-	if not target then return end
-    if player:spellSlot(2).state ~= 0 then return end
-    if orb.combat.target then
-        local QIsRange = player.attackRange + (player.boundingRadius + target.boundingRadius)
-        if player.pos:dist(target.pos) < QIsRange and target.isDashing then
-            player:castSpell("obj", 2, target)
-        end 
-    end
-end 
 ---------
 --Spells--
 ---------
@@ -206,7 +206,6 @@ end ]]
 ---------
 --Call--
 ---------
-cb.add(cb.tick, OnTick)
 cb.add(cb.draw, OnDraw)
 orb.combat.register_f_after_attack(OnPreAttack)
-orb.combat.register_f_pre_tick(OnPosAttack)
+orb.combat.register_f_pre_tick(OnTick)
