@@ -10,8 +10,12 @@ local spellQ = {
 	range = 300
 }
 
+local spellW = { 
+    stacks = 0
+}
+
 local spellE = {
-	range = 700
+    range = 700
 }
 
 local spellR = {
@@ -60,8 +64,16 @@ local function targets(res, obj, dist)
 	res.obj = obj
 	return true
 end
+
 local function obtermeta()
 	return ts.get_result(targets).obj
+end
+
+local function WStacks(args)
+	if args.buff["vaynesilvereddebuff"] then
+		spellW.stacks = args.buff["vaynesilvereddebuff"].stacks
+	end
+	return spellW.stacks
 end
 
 
@@ -76,6 +88,13 @@ local function count_enemies_in_range(pos, range) -- ty Kornis Thank you for all
 	return enemies_in_range
 end
 
+--[[local function updatebuff(args, unit)
+
+end 
+
+local function removebuff(args, unit)
+
+end ]]
 
 local function OnTick()
     local inimigo = common.GetEnemyHeroes()
@@ -137,6 +156,19 @@ local function OnTick()
     end 
 end 
 
+local function IsWRange()
+    local AA = 250 
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        local AARange = player.attackRange + (player.boundingRadius + target.boundingRadius)
+        if target and target.isVisible and player.pos:dist(target.pos) > AARange and menu.chave.CK:get() then
+            if (WStacks(target) == 1 or WStacks(target) == 2) then
+                player:castSpell("pos", 0, game.mousePos)
+            end 
+        end 
+    end 
+end 
+
 local function OnDraw()
     if player.isOnScreen then
         if menu.drawin.pas:get() then
@@ -187,32 +219,6 @@ end
 ---------
 --Spells--
 ---------
---[[local function InterSpell(spell)
-    local spellDINTER = {};
-    if not spell or not spell.name or not spell.owner then return end
-	if spell.owner.isDead then return end
-	if spell.owner.team == player.team then return end
-	if player.pos:dist(spell.owner.pos) > player.attackRange + (player.boundingRadius + spell.owner.boundingRadius) then return end	
-
-	for s = 0, #spells.interrupt.names do
-		if (spells.interrupt.names[s] == string.lower(spell.name)) then
-			spellDINTER.start = os.clock();
-			spellDINTER.owner = spell.owner;
-		end
-	end
-    if not spellDINTER.owner then return end
-	if player.pos:dist(spellDINTER.owner.pos) > player.attackRange + (player.boundingRadius + spellDINTER.owner.boundingRadius) then return end
-	
-	if os.clock() - spellDINTER.channel >= spellDINTER.start then
-		spellDINTER.owner = false;
-		return
-	end
-
-	if os.clock() - 0.35 >= spellDINTER.start then
-		player:castSpell("obj", 2, spellDINTER.owner);
-		spellDINTER.owner = false;
-	end
-end ]]
 
 ---------
 --Call--
@@ -220,3 +226,6 @@ end ]]
 cb.add(cb.draw, OnDraw)
 orb.combat.register_f_after_attack(OnPreAttack)
 orb.combat.register_f_pre_tick(OnTick)
+orb.combat.register_f_out_of_range(IsWRange)
+--cb.add(cb.updatebuff, updatebuff)
+--cb.add(cb.removebuff, removebuff)
