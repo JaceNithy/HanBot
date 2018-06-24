@@ -40,7 +40,7 @@ local spellR = {
  "xerathlocusofpower2";
 }]]
 
-local menu = menu("Nicky [Vayne]", "Vayne: By JaceNicky")
+local menu = menu("Nicky [Vayne]", "Vayne: By Nicky")
 
 menu:menu("combo", "Combo")
 menu.combo:dropdown("Qmode", "AA Reset Mode: ", 1, {"Mouse[Pos]", "Pos AA", "Aggressive AA"})
@@ -76,18 +76,19 @@ local function count_enemies_in_range(pos, range) -- ty Kornis Thank you for all
 	return enemies_in_range
 end
 
+
 local function OnTick()
-    local target = obtermeta();
-	if not target then return end
-    if player:spellSlot(2).state ~= 0 then return end
-    if orb.combat.target then
-        if menu.combo.EC:get() and player.pos:dist(target.pos) < 1000 then
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        
+    --if orb.combat.target then
+        if target and target.isVisible and menu.combo.EC:get() and player.pos:dist(target.pos) < 1000 then
             local enemiesCount = #count_enemies_in_range(player.pos, 1200)
             if 	enemiesCount > 1 and enemiesCount <= 3 then
                 for i= 15, 450, 75 do
                    local vector3 = target.pos:ext(player.pos, -i)
                     if navmesh.isWall(vector3) then
-                        return true
+                        player:castSpell("obj", 2, target)
                     end
                 end
             else
@@ -186,6 +187,33 @@ end
 ---------
 --Spells--
 ---------
+--[[local function InterSpell(spell)
+    local spellDINTER = {};
+    if not spell or not spell.name or not spell.owner then return end
+	if spell.owner.isDead then return end
+	if spell.owner.team == player.team then return end
+	if player.pos:dist(spell.owner.pos) > player.attackRange + (player.boundingRadius + spell.owner.boundingRadius) then return end	
+
+	for s = 0, #spells.interrupt.names do
+		if (spells.interrupt.names[s] == string.lower(spell.name)) then
+			spellDINTER.start = os.clock();
+			spellDINTER.owner = spell.owner;
+		end
+	end
+    if not spellDINTER.owner then return end
+	if player.pos:dist(spellDINTER.owner.pos) > player.attackRange + (player.boundingRadius + spellDINTER.owner.boundingRadius) then return end
+	
+	if os.clock() - spellDINTER.channel >= spellDINTER.start then
+		spellDINTER.owner = false;
+		return
+	end
+
+	if os.clock() - 0.35 >= spellDINTER.start then
+		player:castSpell("obj", 2, spellDINTER.owner);
+		spellDINTER.owner = false;
+	end
+end ]]
+
 ---------
 --Call--
 ---------
