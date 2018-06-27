@@ -353,7 +353,7 @@ function NickyRiven:OnProcessSpell(spell)
         end 
     elseif player:spellSlot(2).state == 0  then
         if spell.owner.type == TYPE_HERO and spell.owner.team == TEAM_ENEMY then
-            if vec3(spell.endPos.x, spell.endPos.y, spell.endPos.z):dist(player.pos)) > 400 then return end
+            if vec3(spell.endPos.x, spell.endPos.y, spell.endPos.z):dist(player.pos) > 400 then return end
             if table.contains(self.targettedSpells, spell.name) or table.contains(self.avoidableSpells, spell.name) then
                 player:castSpell("pos", 2, game.mousePos)
 
