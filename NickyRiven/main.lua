@@ -94,6 +94,7 @@ function NickyRiven:MenuRiven()
     self.mymenu.ri:boolean("Engage", "Draw Engage Range", true)
     self.mymenu.ri:header("x2d", "Burts [Key]")
     self.mymenu.ri:keybind("CK", "[Key] Burts", "T", nil)
+    self.mymenu.ri:keybind("ComK", "[Key] Burts", "Space", nil)
 end 
 
 function NickyRiven:OnLoad()
@@ -104,6 +105,7 @@ function NickyRiven:OnLoad()
     cb.add(cb.updatebuff, function(buff) self:OnUpdateBuff(buff) end)
     cb.add(cb.removebuff, function(buff) self:OnRemoveBuff(buff) end)
     orb.combat.register_f_after_attack(function() self:OnPreAttack() end)
+    orb.combat.register_f_pre_tick(function() self:OnPreTick() end)
 end 
 
 
@@ -141,6 +143,18 @@ function NickyRiven:OnTick()
             self:CanCastTimat(target)
         end        
     end 
+    if self.RWindslashReady then
+        local inimigo = common.GetEnemyHeroes()
+        for i, target in ipairs(inimigo) do
+            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and dmglib.GetSpellDamage(3, target) > target.Health then
+                self:CastR(target)
+            end 
+        end 
+    end               
+end 
+
+function NickyRiven:OnPreTick()
+--
 end 
 
 function NickyRiven:BurtsMode()
@@ -150,7 +164,7 @@ function NickyRiven:BurtsMode()
     end 
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if target and player.pos:dist(target.pos) <= range then
+        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= range then
             if player:spellSlot(2).state == 0 then
                 player:castSpell("pos", 2, target.pos)
             end 
@@ -248,7 +262,7 @@ end
 function NickyRiven:OnPreAttack()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if target and target.isVisible and common.IsValidTarget(target) then
+        if target and target.isVisible and common.IsValidTarget(target)  and not target.isDead  then
             if self.mymenu.ri.CK:get() then
                 if player:spellSlot(3).state == 0 then
                     self:CastR(target)
@@ -261,12 +275,41 @@ function NickyRiven:OnPreAttack()
             end 
             if orb.combat.target then
                 if player:spellSlot(3).state == 0 then
-
+                    if not self.RWindslashReady and self:ComboDamage(target) > target.health then
+                        player:castSpell("self", 3)
+                        common.DelayAction(function() self:CastW(target) end, 0.325)
+                    end
+                    if SpellsQr.QCout == 3 and target.health / target.maxHealth * 100 <= 50 then
+                        self:CastR(target)
+                        common.DelayAction(function() player:castSpell('obj', 0, target) end, 0.3)
+                    end 
                 end 
+                if player:spellSlot(1).state == 0 and os.clock() - self.ELastCastTick < 1.20 then
+                    self:CastW(target)
+                end
+                if player:spellSlot(0).state == 0 then
+                    self:CastQ(target)
+                    if player:spellSlot(1).state == 0 and os.clock() - self.ELastCastTick >= 0.100 then
+                        common.DelayAction(function() self:CastW(target) end, 0.6)
+                        common.DelayAction(function() self:CastQ(target) end, 0.8)
+                    end
+                end
             end 
         end 
     end 
 end 
+
+function NickyRiven:CastW(target)
+    local wRange = 125 + target.boundingRadius
+  
+    if self.RAttackRangeBoost then
+      wRange = wRange + 10
+    end
+  
+    if target.pos:dist(player.pos) <= wRange then
+        player:castSpell("self", 1)
+    end
+end
 
 function NickyRiven:OnDraw()
     if self.mymenu.ri.Engage:get() then
@@ -293,7 +336,7 @@ function NickyRiven:OnProcessSpell(spell)
     elseif spell.name == "RivenIzunaBlade" and player:spellSlot(0).state == 0 then
         local inimigo = common.GetEnemyHeroes()
         for i, target in ipairs(inimigo) do
-            if player.pos:dist(target.pos) <= player.attackRange + 200 then
+            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= player.attackRange + 200 then
                 common.DelayAction(function() player:castSpell("pos", 0, target) end, 0.15)
             end 
         end 
@@ -312,7 +355,22 @@ function NickyRiven:OnRemoveBuff(buff)
 end 
 
 function NickyRiven:ComboDamage(target)
+    local aa = common.GetTotalAD()
+    local dmg = aa
 
+    if player:spellSlot(0).state == 0 then
+        local count = 4 -  SpellsQr.QCout
+        dmg = dmg + (dmglib.GetSpellDamage(0, target) + aa) * count
+    end 
+    if player:spellSlot(1).state == 0 then
+        dmg = dmg + dmglib.GetSpellDamage(1, target)
+    end 
+    if player:spellSlot(3).state == 0 then
+        dmg = dmg + dmglib.GetSpellDamage(3, target)
+    end 
+
+    dmg = self:RealDamage(target, dmg)
+    return dmg
 end 
 
 function NickyRiven:RealDamage(target, damage)
@@ -327,7 +385,7 @@ function NickyRiven:RealDamage(target, damage)
     if target.buff["ChronoShift"] and pbuff2.endTime > os.clock() + 0.3 then
         return 0
     end
-    if myHero.buff["SummonerExhaust"] then
+    if player.buff["SummonerExhaust"] then
         damage = damage * 0.6;
     end
     if target.buff["BlitzcrankManaBarrierCD"] and target.buff["ManaBarrier"] then
