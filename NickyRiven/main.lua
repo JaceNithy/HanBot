@@ -130,7 +130,7 @@ function NickyRiven:OnProcessSpell(spell)
 end 
 
 function NickyRiven:OnUpdateBuff(buff)
-    if buff.Name == "RivenFeint" then
+    if buff.name == "RivenFeint" then
         self.ELastCastTick = os.clock()
     end
 end 
