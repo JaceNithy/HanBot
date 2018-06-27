@@ -150,7 +150,18 @@ function NickyRiven:OnTick()
                 self:CastR(target)
             end 
         end 
-    end               
+    end     
+    if self.mymenu.ri.ComK:get() then     
+        local inimigo = common.GetEnemyHeroes()
+        for i, target in ipairs(inimigo) do
+            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.EngangeRange then
+                player:castSpell("pos", 2, target.pos)
+                if player:spellSlot(3).state == 0 and not self.RWindslashReady then
+                    self:CastR(target)
+                end
+            end 
+        end 
+    end 
 end 
 
 function NickyRiven:OnPreTick()
