@@ -150,9 +150,9 @@ function NickyRiven:FlashW(target)
   
     if self.RAttackRangeBoost or player:spellSlot(3).state == 0 then
         player:castSpell('obj', 1, player)
-        common.DelayAction(function() player:castSpell("pos", 0, Flash4) end, 0.2)
+        common.DelayAction(function() player:castSpell("pos", Flash4, flashPos) end, 0.2)
     else
-        player:castSpell("pos", 0, Flash4)
+        player:castSpell("pos", Flash4, flashPos)
         player:castSpell('obj', 1, player)
     end
 end
