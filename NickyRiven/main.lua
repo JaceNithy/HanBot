@@ -58,7 +58,7 @@ NickyRiven.targettedSpells =
 
 NickyRiven.avoidableSpells =
 {
-  "MonkeyKingQAttack",
+   "MonkeyKingQAttack",
    "FizzPiercingStrike",
    "IreliaEquilibriumStrike",
    "RengarQ",
@@ -146,7 +146,8 @@ function NickyRiven:OnTick()
     if self.RWindslashReady then
         local inimigo = common.GetEnemyHeroes()
         for i, target in ipairs(inimigo) do
-            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and dmglib.GetSpellDamage(3, target) > target.Health then
+            local hp = common.GetShieldedHealth("ap", target)
+            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and dmglib.GetSpellDamage(3, target) > hp then
                 self:CastR(target)
             end 
         end 
@@ -162,6 +163,17 @@ function NickyRiven:OnTick()
             end 
         end 
     end 
+    if self.mymenu.ri.ComK:get() and self.mymenu.ri.AFE:get() then 
+        local inimigo = common.GetEnemyHeroes()
+        for i, target in ipairs(inimigo) do
+            local hp = common.GetShieldedHealth("ap", target)
+            if player:spellSlot(2).state == 0 and target and target.isVisible and common.IsValidTarget(target) and not target.isDead and target.pos:dist(player.pos) >= 500 and (dmglib.GetSpellDamage(0, target) * 3 + dmglib.GetSpellDamage(1, target) + dmglib.GetSpellDamage(3, target) > hp) then
+                local flashPos = target.pos + (target.pos - player.pos):norm() * -100
+                player:castSpell("pos", 2, target.pos)
+                common.DelayAction(function() player:castSpell("pos", Flash4, vec3(flashPos)) end, 0.2)
+            end 
+        end 
+    end    
 end 
 
 function NickyRiven:OnPreTick()
@@ -352,7 +364,7 @@ function NickyRiven:OnProcessSpell(spell)
             end 
         end 
     elseif player:spellSlot(2).state == 0  then
-        if spell.owner.type == TYPE_HERO and spell.owner.team == TEAM_ENEMY then
+        if spell.owner.type == TYPE_MISSILE and spell.owner.team == TEAM_ENEMY then
             if vec3(spell.endPos.x, spell.endPos.y, spell.endPos.z):dist(player.pos) > 400 then return end
             if table.contains(self.targettedSpells, spell.name) or table.contains(self.avoidableSpells, spell.name) then
                 player:castSpell("pos", 2, game.mousePos)
@@ -379,6 +391,7 @@ end
 function NickyRiven:ComboDamage(target)
     local aa = common.GetTotalAD()
     local dmg = aa
+  --  local hp = common.GetShieldedHealth("ap", target)
 
     if player:spellSlot(0).state == 0 then
         local count = 4 -  SpellsQr.QCout
