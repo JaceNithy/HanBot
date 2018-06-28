@@ -163,7 +163,7 @@ function NickyRiven:OnTick()
             end 
         end 
     end 
-    if self.mymenu.ri.ComK:get() and self.mymenu.ri.AFE:get() then 
+    if self.mymenu.ri.AFE:get() then 
         local inimigo = common.GetEnemyHeroes()
         for i, target in ipairs(inimigo) do
             local hp = common.GetShieldedHealth("ap", target)
