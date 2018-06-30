@@ -19,6 +19,12 @@ local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing you
 	return enemies_in_range
 end
 
+--Real HP
+local function GetRealHP(unit, dmgType)
+    local mod = dmgType == 0 and unit.magicalShield or unit.allShield
+    return unit.health + mod
+end
+
 
 local NickyKatarina = { }
 
@@ -38,6 +44,7 @@ NickyKatarina.SpellW = { Range = 340 }
 NickyKatarina.DanggerSpell = { Range = 340 }
 NickyKatarina.SpellE = { Range = 725 }
 NickyKatarina.SpellR = { Range = 550 }
+
 
 local function LoadingKat()
     NickyKatarina:OnLoad()
@@ -95,6 +102,8 @@ function NickyKatarina:OnTick()
     self:CastR()
     --self:CastR()
     --self:TestR()
+    self:SpellSummoer()
+    self:AutoIgnite()
 end 
 
 function NickyKatarina:ComboQ()
@@ -132,6 +141,25 @@ function NickyKatarina:KillSteal()
             player:castSpell("pos", 2, target.pos)
         end 
     end 
+end 
+
+function NickyKatarina:SpellSummoer()
+    if player:spellSlot(4).name == "SummonerDot" then
+        Ignite = 4
+      elseif player:spellSlot(5).name == "SummonerDot" then
+        Ignite = 5
+    end
+end 
+
+function NickyKatarina:AutoIgnite()
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) >= 550 then
+            if self:DamageIgnite(target) > target.health then
+                player:castSpell("obj", Ignite, target)
+            end 
+        end 
+    end
 end 
 
 function NickyKatarina:CastW()
@@ -258,6 +286,17 @@ function NickyKatarina:GetRDamage(target)
 
         if player:spellSlot(3).state == 0 then
 			Damage = (DamageAP[player:spellSlot(3).level] + 3.3 * player.bonusSpellBlock + 2.85 * player.flatMagicDamageMod)
+        end
+		return Damage
+	end
+	return 0
+end
+
+function NickyKatarina:DamageIgnite(target)
+    if target ~= 0 then
+		local Damage = 0
+        if player:spellSlot(Ignite).state == 0 then
+			Damage = (50 + 20 * player.levelRef / 5 * 3)
         end
 		return Damage
 	end
