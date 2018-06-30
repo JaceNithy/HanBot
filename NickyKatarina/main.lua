@@ -35,6 +35,7 @@ NickyKatarina.RDance = false
 -- R = 3
 NickyKatarina.SpellQ = { Range = 625 }
 NickyKatarina.SpellW = { Range = 340 }
+NickyKatarina.DanggerSpell = { Range = 340 }
 NickyKatarina.SpellE = { Range = 725 }
 NickyKatarina.SpellR = { Range = 550 }
 
@@ -61,6 +62,7 @@ function NickyKatarina:MenuKat()
     self.mymenu.kat:boolean("OnlyE", "Only On Dagger", true)
     self.mymenu.kat:boolean("Keep", "Keep R Active", true) 
     self.mymenu.kat:boolean("CanR", "Cancel [R]", true) 
+    self.mymenu.kat:slider("Rhitenemy", "Min. Enemies to Use", 2, 1, 5, 1)
     self.mymenu.kat:header("x2d", "[Key]")
     self.mymenu.kat:keybind("ComK", "[Key] Combo", "Space", nil)
 end 
@@ -90,6 +92,8 @@ function NickyKatarina:OnTick()
     end 
     self:KillSteal()
     self:CastW()
+    self:CastR()
+    --self:CastR()
     --self:TestR()
 end 
 
@@ -109,7 +113,7 @@ function NickyKatarina:EDagger()
             local spot = Adaga.pos + (target.pos - Adaga.pos):norm() * 125
             local delay = 0.2
             if os.clock() - self.IsValidDanger > 1.0 - delay then
-                if player:spellSlot(2).state == 0  and  spot:distSqr(target) < self.SpellW.Range * self.SpellW.Range then
+                if player:spellSlot(2).state == 0  and spot:distSqr(target) < self.DanggerSpell.Range * self.DanggerSpell.Range then
                     player:castSpell("pos", 2, vec3(spot))
                 end 
             end 
@@ -125,7 +129,7 @@ function NickyKatarina:KillSteal()
             player:castSpell("obj", 0, target)
         end 
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellE.Range and dmglib.GetSpellDamage(2, target) > HealthEnemy then
-            player:castSpell("pos", 2, target)
+            player:castSpell("pos", 2, target.pos)
         end 
     end 
 end 
@@ -133,9 +137,11 @@ end
 function NickyKatarina:CastW()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) < self.SpellW.Range/2 then
-            if player:spellSlot(1).state == 0 then
-                player:castSpell("obj", 1, player)
+        if not self.RDance then
+            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) < self.SpellW.Range/2 then
+                if player:spellSlot(1).state == 0 then
+                    player:castSpell("obj", 1, player)
+                end 
             end 
         end 
     end 
@@ -175,6 +181,16 @@ function NickyKatarina:OnDeleteObj(obj)
             self.DaggerRal[obj.ptr] = nil
             self.IsValidDanger = 0
             self.CountDagger = self.CountDagger - 1
+        end 
+    end 
+end 
+
+function NickyKatarina:CastR()
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        local HealthEnemy = common.GetShieldedHealth("ap", target)
+        if #EnemysInrange(player.pos, 500 - 100) >= self.mymenu.kat.Rhitenemy:get() and target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellR.Range and self:GetRDamage(target) > target.health then
+            player:castSpell("obj", 3,  player)
         end 
     end 
 end 
@@ -223,25 +239,43 @@ function NickyKatarina:CheckTheR()
 end 
 
 function NickyKatarina:ChancelR()
-    if self.RDance then
-        if #EnemysInrange(player.pos, 550 + 5) == 0 then
-            player:move(game.mousePos)
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        if self.RDance then
+            if #EnemysInrange(player.pos, 550 + 5) == 0 then
+                player:move(game.mousePos)
+            else 
+                self:ETargeted(target)
+            end 
         end 
     end 
 end 
 
---[[function NickyKatarina:GetRDamage(target)
+function NickyKatarina:GetRDamage(target)
     if target ~= 0 then
 		local Damage = 0
 		local DamageAP = {375, 562.5, 750}
 
         if player:spellSlot(3).state == 0 then
-			Damage = CalculatePhysicalDamage(DamageAP[player:spellSlot(3).level] + 3.3 * player.bonusSpellBlock + 2.85 * player.flatMagicDamageMod)
+			Damage = (DamageAP[player:spellSlot(3).level] + 3.3 * player.bonusSpellBlock + 2.85 * player.flatMagicDamageMod)
         end
 		return Damage
 	end
 	return 0
-end]]
+end
+
+function NickyKatarina:GetEDamage(target)
+    if target ~= 0 then
+		local Damage = 0
+		local DamageSpell = {15, 30, 45, 60, 75}
+
+        if player:spellSlot(2).state == 0 then
+			Damage = (DamageSpell[player:spellSlot(2).level] + 0.50 * player.bonusSpellBlock + 0.25 * player.flatMagicDamageMod)
+        end
+		return Damage
+	end
+	return 0
+end
 
 --
 LoadingKat()
