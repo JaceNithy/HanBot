@@ -100,6 +100,7 @@ function NickyKatarina:OnTick()
     self:KillSteal()
     self:CastW()
     self:CastR()
+    self:CastR2()
     --self:CastR()
     --self:TestR()
     self:SpellSummoer()
@@ -109,9 +110,11 @@ end
 function NickyKatarina:ComboQ()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellQ.Range then
-            player:castSpell("obj", 0, target)
-        end 
+        if not self.RDance then 
+            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellQ.Range then
+                player:castSpell("obj", 0, target)
+            end 
+        end   
     end 
 end 
 
@@ -119,6 +122,7 @@ function NickyKatarina:EDagger()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         for _, Adaga in pairs(self.DaggerRal) do
+            if not self.RDance then
             local spot = Adaga.pos + (target.pos - Adaga.pos):norm() * 125
             local delay = 0.2
             if os.clock() - self.IsValidDanger > 1.0 - delay then
@@ -128,6 +132,7 @@ function NickyKatarina:EDagger()
             end 
         end 
     end 
+end 
 end 
 
 function NickyKatarina:KillSteal()
@@ -176,8 +181,8 @@ function NickyKatarina:CastW()
 end 
 
 function NickyKatarina:ETargeted(target)
-    if player:spellSlot(2).state == 0 then
-        player:castSpell("pos", 2, target)
+    if player:spellSlot(2).state == 0 and  not self.RDance and player.pos:dist(target.pos) < self.SpellE.Range then
+        player:castSpell("pos", 2, target.pos)
     end 
 end 
 
@@ -222,6 +227,17 @@ function NickyKatarina:CastR()
         end 
     end 
 end 
+
+function NickyKatarina:CastR2()
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        local HealthEnemy = common.GetShieldedHealth("ap", target)
+        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellR.Range and self:GetRDamage(target) > target.health then
+            player:castSpell("obj", 3,  player)
+        end 
+    end 
+end 
+
 
 function NickyKatarina:OnDraw()
     if player.isOnScreen then
