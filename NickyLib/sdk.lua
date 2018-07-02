@@ -632,6 +632,8 @@ function sdk.Vector:RotateAroundPoint(v, angle)
     return Vector(x, y, self.z or 0)
 end
 
+return sdk
+
 
 
 
