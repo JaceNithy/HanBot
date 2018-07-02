@@ -216,18 +216,29 @@ function NickyThresh:OnTick()
 		end
     end
     if player:spellSlot(0).state == 0 then
-        local inimigo = common.GetEnemyHeroes()
-        for i, target in ipairs(inimigo) do
-            if target and target.isVisible and not target.isDead then
-                self:LogicQ(target)
-            end 
-        end    
+        self:LogicQ()       
     end 
 
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target.buff["ThreshQ"] then
             self.Marked = target 
+        end 
+    end 
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        if not player:spellSlot(0).state == 0 and os.clock() - self.grabW > 2 then
+            if target.buff["threshq"] and IsValidTarget(target, self.SpellsQ.Range) then
+                self.grabS = self.grabS + 1
+                self.grabW = os.clock()
+                self.lastQ = os.clock()
+            end
+        end
+    end 
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        if target.buff["threshq"] then
+            print("fsdfsfsfsdfsf")
         end 
     end 
 end 
@@ -290,16 +301,6 @@ function NickyThresh:MenuThresh()
     self.mymenu.keys:keybind("ComboThtesh", "[Key] Combo", "Space", nil)
 end 
 
-function NickyThresh:QStart(target)
-	if not player:spellSlot(0).state == 0 then
-		return false
-	end
-    if target.buff["ThreshQ"] then
-		return true
-	end
-	return false
-end
-
 function NickyThresh:OnProcessSpell(unit, spell)
 	if spell and player and spell.owner.ptr == spell.ptr and spell.name == "ThreshQ" then
 		self.grab = self.grab + 1
@@ -328,17 +329,21 @@ function NickyThresh:OnProcessSpell(unit, spell)
 	end
 end 
 
-function NickyThresh:LogicQ(target)
-    if target ~= 0 and self.mymenu.keys.ComboThtesh:get() and not player:spellSlot(0).name == "threshqleap" then
-        if IsValidTarget(target, self.mymenu.MQ.MaxQ:get()) then
-            local QIsPred = pred.linear.get_prediction(self.PredQ, target)
-                --if not self:QStart(target) and self.Marked == nil then
-                    if not pred.collision.get_prediction(self.PredQ, QIsPred, target) then
-                        player:castSpell("pos", 0, vec3(QIsPred.endPos.x, target.pos.y, QIsPred.endPos.y))
-                    end  
-               -- end
-            --end
-        end
+function NickyThresh:LogicQ()
+    local inimigo = common.GetEnemyHeroes()
+    local qtimedelay = 0
+    for i, target in ipairs(inimigo) do
+        if target and target.isVisible and not target.isDead then
+            if not target.buff["threshq"] and IsValidTarget(target, self.SpellsQ.Range) then
+                local QIsPred = pred.linear.get_prediction(self.PredQ, target)
+                if not pred.collision.get_prediction(self.PredQ, QIsPred, target) then
+                    player:castSpell("pos", 0, vec3(QIsPred.endPos.x, target.pos.y, QIsPred.endPos.y))
+                end 
+            end 
+        end 
+        if target.buff["threshq"] then
+            common.DelayAction(function() player:castSpell("self", 0) end, .1)
+        end 
     end
 end
 
@@ -392,6 +397,16 @@ end
 function NickyThresh:CanHarras()
 	local myHeroPos = player.pos
 	if not self:IsUnderTurretEnemy(myHeroPos) then
+		return true
+	end
+	return false
+end
+
+function NickyThresh:QStart(target)
+	if not player:spellSlot(0).state == 0 then
+		return false
+	end
+    if target.buff["ThreshQ"] then
 		return true
 	end
 	return false
