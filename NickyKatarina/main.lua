@@ -137,7 +137,7 @@ function NickyKatarina:OnTick()
     if self.mymenu.kat.CanR:get() and self.mymenu.kat.OnlyE:get() and not self.RDance then
         self:LogicE()
     else 
-        if self:CountAdaga() > 0 then
+        if (self:CountAdaga() > 0) then
             self:LogicE()
         else 
             self:LogicETarget()
@@ -279,7 +279,7 @@ function NickyKatarina:LogicR()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if #EnemysInrange(player.pos, 550 - 100) >= self.mymenu.kat.Rhitenemy:get() and target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellR.Range then
-            player:castSpell("obj", 3,  player)
+            player:castSpell("self", 3)
         end 
     end 
 end 
@@ -289,7 +289,7 @@ function NickyKatarina:KillR()
     for i, target in ipairs(inimigo) do
         local HealthEnemy = common.GetShieldedHealth("ap", target)
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellR.Range and self:GetRDamage(target) > HealthEnemy then
-            player:castSpell("self", 3,  player)
+            player:castSpell("self", 3)
         end 
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and self:GetEDamage(target) > HealthEnemy then
             player:castSpell("pos", 2,  target.pos)
