@@ -279,7 +279,7 @@ function NickyKatarina:LogicR()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if #EnemysInrange(player.pos, 550 - 100) >= self.mymenu.kat.Rhitenemy:get() and target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellR.Range then
-            player:castSpell("self", 3)
+            player:castSpell("pos", 3, player.pos)
         end 
     end 
 end 
@@ -289,7 +289,7 @@ function NickyKatarina:KillR()
     for i, target in ipairs(inimigo) do
         local HealthEnemy = common.GetShieldedHealth("ap", target)
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellR.Range and self:GetRDamage(target) > HealthEnemy then
-            player:castSpell("self", 3)
+            player:castSpell("pos", 3, player.pos)
         end 
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and self:GetEDamage(target) > HealthEnemy then
             player:castSpell("pos", 2,  target.pos)
