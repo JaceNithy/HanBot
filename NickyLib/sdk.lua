@@ -379,7 +379,7 @@ function sdk.GetPath(unit, index) -- In test
 end
 
 function sdk.GetRealHP(unit, dmgType)
-    local mod = (dmgType == "AP" or dmgType = "AP") and unit.magicalShield or unit.allShield
+    local mod = (dmgType == "AP" or dmgType == "AP") and unit.magicalShield or unit.allShield
     return unit.health + mod
 end
 
