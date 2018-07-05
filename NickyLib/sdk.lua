@@ -513,7 +513,7 @@ end
 
 function sdk.Vector:ProjectOn(v)
     local s = self:Len2(v) / v:Len2()
-    return Vector(v * s)
+    return sdk.Vector(v * s)
 end
 
 function sdk.Vector:MirrorOn(v)
