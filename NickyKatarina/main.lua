@@ -308,7 +308,7 @@ function NickyKatarina:KillR()
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellR.Range and self:GetRDamage(target) > HealthEnemy then
             player:castSpell("pos", 3, player.pos)
         end 
-        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and target.health/target.maxHealth*100 <= 20 then
+        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and dmglib.GetSpellDamage(2, target) > HealthEnemy then
             player:castSpell("pos", 2,  target.pos)
         end
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and dmglib.GetSpellDamage(0, target) > HealthEnemy then
