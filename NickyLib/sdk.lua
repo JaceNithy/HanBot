@@ -473,7 +473,7 @@ return self.x, self.y, self.z
 end
 
 function sdk.Vector:Len2(v)
-    local v = v and Vector(v) or self
+    local v = v and sdk.Vector(v) or self
     return self.x * v.x + (self.y and self.y * v.y or 0) + (self.z and self.z * v.z or 0)
 end
 
