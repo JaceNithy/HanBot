@@ -423,7 +423,7 @@ function sdk.Vector:__tostring()
 end
 
 function sdk.Vector:__add(v)
-    return Vector(self.x + v.x, (v.y and self.y) and self.y + v.y, (v.z and self.z) and self.z + v.z)
+    return sdk.Vector(self.x + v.x, (v.y and self.y) and self.y + v.y, (v.z and self.z) and self.z + v.z)
 end
 
 function sdk.Vector:__sub(v)
@@ -461,11 +461,11 @@ function sdk.Vector:__eq(v)
 end
 
 function sdk.Vector:__unm()
-    return Vector(-self.x, self.y and -self.y, self.z and -self.z)
+    return sdk.Vector(-self.x, self.y and -self.y, self.z and -self.z)
 end
 
 function sdk.Vector:Clone()
-    return Vector(self)
+    return sdk.Vector(self)
 end
 
 function sdk.Vector:Unpack()
@@ -629,7 +629,7 @@ function sdk.Vector:RotateAroundPoint(v, angle)
     local cos, sin = math_cos(angle), math_sin(angle)
     local x = ((self.x - v.x) * cos) - ((v.y - self.y) * sin) + v.x
     local y = ((v.y - self.y) * cos) + ((self.x - v.x) * sin) + v.y
-    return Vector(x, y, self.z or 0)
+    return sdk.Vector(x, y, self.z or 0)
 end
 
 return sdk
