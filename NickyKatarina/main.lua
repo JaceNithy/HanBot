@@ -37,10 +37,14 @@ local function GetDistance(p1, p2)
     return math.sqrt(squaredDistance)
 end
 
-local function IsValidTarget(unit, range)
+--[[local function IsValidTarget(unit, range)
     local range = range or math.huge
     local distance = GetDistance(unit)
     return unit and not unit.isDead and unit.isVisible and distance <= range
+end]]
+
+local function IsValidTarget(unit, range)
+    return unit and unit.isVisible and not unit.isDead and (not range or GetDistance(unit) <= range)
 end
 
 local NickyKatarina = { }
@@ -112,6 +116,7 @@ function NickyKatarina:OnTick()
             player:move(mousePos)
         end 
     end 
+    self:AuToQ()
     --Time DAGGER
     self.dLaftTime = self:MathTime(self.dEndTime - game.time)
     -- Time Pos Dagger
@@ -229,6 +234,17 @@ function NickyKatarina:LogicQ()
     end 
 end 
 
+function NickyKatarina:AuToQ()
+    local inimigo = common.GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        if target and target.isVisible and not target.isDead and not self.RDance then
+            if player:spellSlot(2).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
+                player:castSpell("obj", 0, target)
+            end 
+        end 
+    end 
+end 
+
 function NickyKatarina:LogicW()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
@@ -288,10 +304,11 @@ function NickyKatarina:KillR()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         local HealthEnemy = common.GetShieldedHealth("ap", target)
+        local dsadasdasda = common.GetShieldedHealth("ad", target)
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellR.Range and self:GetRDamage(target) > HealthEnemy then
             player:castSpell("pos", 3, player.pos)
         end 
-        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and self:GetEDamage(target) > HealthEnemy then
+        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and target.health/target.maxHealth*100 <= 20 then
             player:castSpell("pos", 2,  target.pos)
         end
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and dmglib.GetSpellDamage(0, target) > HealthEnemy then
