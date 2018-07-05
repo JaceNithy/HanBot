@@ -317,6 +317,32 @@ function sdk.VectorMovementCollision(startPoint1, endPoint1, v1, startPoint2, v2
     return t1, GetCollisionPoint(t1), t2, GetCollisionPoint(t2), dist
 end
 
+function sdk.Distcenter(start, path, center, dist) --Distance to center
+	local a = start.x - center.x
+	local b = start.y - center.y
+	local c = start.z - center.z
+	local x = path.x
+	local y = path.y
+	local z = path.z
+
+	local n1 = a * x + b * y + c * z
+	local n2 =
+		z ^ 2 * dist ^ 2 - a ^ 2 * z ^ 2 - b ^ 2 * z ^ 2 + 2 * a * c * x * z + 2 * b * c * y * z + 2 * a * b * x * y +
+		dist ^ 2 * x ^ 2 +
+		dist ^ 2 * y ^ 2 -
+		a ^ 2 * y ^ 2 -
+		b ^ 2 * x ^ 2 -
+		c ^ 2 * x ^ 2 -
+		c ^ 2 * y ^ 2
+	local n3 = x ^ 2 + y ^ 2 + z ^ 2
+
+	local r1 = -(n1 + math.sqrt(n2)) / n3
+	local r2 = -(n1 - math.sqrt(n2)) / n3
+	local r = math.max(r1, r2)
+
+	return start + r * path
+end
+
 function sdk.FileExists(path)
     local f = io_open(path, 3)
     if f then
