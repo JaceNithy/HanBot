@@ -271,6 +271,10 @@ function NickyKatarina:LogicE()
                                 player:castSpell("pos", 2, vec3(DaggerPos))
                             elseif self:LogicDistance(Adaga, target) and GetDistance(target, Adaga) < 450 then
                                 player:castSpell("pos", 2, vec3(DaggerPos))
+                            elseif self:LogicInstance(Adaga, target) and GetDistance(target, Adaga) < 450 then
+                                player:castSpell("pos", 2, vec3(DaggerRange))
+                            elseif self:ELogic(Adaga, target) and GetDistance(target, Adaga) < 450 then
+                                player:castSpell("pos", 2, vec3(DaggerIsRange))
                             end 
                         end    
                     end 
