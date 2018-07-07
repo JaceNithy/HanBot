@@ -7,6 +7,7 @@ local avada_lib = module.lib('avada_lib')
 --Avada Lib
 local common = avada_lib.common
 local dmglib = avada_lib.damageLib
+--local sdk = NickyLib.sdk
 
 local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing your code
 	local enemies_in_range = {}
@@ -78,7 +79,7 @@ local function LoadingKat()
 end
 
 function NickyKatarina:OnLoad()
-    cb.add(cb.tick, function() self:OnTick() end)
+    orb.combat.register_f_pre_tick(function() self:OnTick() end)
     cb.add(cb.draw, function() self:OnDraw() end)
     cb.add(cb.updatebuff, function(buff) self:OnUpdateBuff(buff) end)
     cb.add(cb.removebuff, function(buff) self:OnRemoveBuff(buff) end)
@@ -124,25 +125,25 @@ function NickyKatarina:OnTick()
     --CheckR
     self:CheckTheR()
 
-    if self.mymenu.kat.ComK:get() and not self.RDance then
+    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
         self:LogicQ() 
     end 
-    if self.mymenu.kat.ComK:get() and not self.RDance then
+    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
         self:LogicE()     
     end 
-    if self.mymenu.kat.ComK:get() and not self.RDance then
+    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
         self:LogicW()
     end 
-    if self.mymenu.kat.ComK:get() and not self.RDance then
+    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
         self:LogicR()
     end 
-    if self.mymenu.kat.CanR:get() and not self.RDance then
+    if self.mymenu.kat.CanR:get() and not player.buff["katarinarsound"] then
         self:KillR()
     end 
-    if self.mymenu.kat.CanR:get() and self.mymenu.kat.OnlyE:get() and not self.RDance then
+    if self.mymenu.kat.CanR:get() and self.mymenu.kat.OnlyE:get() and not player.buff["katarinarsound"] then
         self:LogicE()
     else 
-        if (self:CountAdaga() > 0) then
+        if (self:CountAdaga() > 0) and not player.buff["katarinarsound"] then
             self:LogicE()
         else 
             self:LogicETarget()
@@ -227,7 +228,7 @@ function NickyKatarina:LogicQ()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
-            if player:spellSlot(2).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
+            if player:spellSlot(0).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
                 player:castSpell("obj", 0, target)
             end 
         end 
@@ -238,7 +239,7 @@ function NickyKatarina:AuToQ()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead and not self.RDance then
-            if player:spellSlot(2).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
+            if player:spellSlot(0).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
                 player:castSpell("obj", 0, target)
             end 
         end 
@@ -288,7 +289,7 @@ function NickyKatarina:LogicETarget()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
-            if IsValidTarget(target, self.SpellE.Range) then
+            if player:spellSlot(2).state == 0 and IsValidTarget(target, self.SpellE.Range) then
                 player:castSpell("pos", 2, target.pos)
             end 
         end 
@@ -298,7 +299,7 @@ end
 function NickyKatarina:LogicR()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if #EnemysInrange(player.pos, 550 - 100) >= self.mymenu.kat.Rhitenemy:get() and target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellR.Range then
+        if player:spellSlot(3).state == 0 and #EnemysInrange(player.pos, 550 - 100) >= self.mymenu.kat.Rhitenemy:get() and target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellR.Range then
             player:castSpell("pos", 3, player.pos)
         end 
     end 
