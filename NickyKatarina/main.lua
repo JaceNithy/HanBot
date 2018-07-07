@@ -118,10 +118,11 @@ function NickyKatarina:OnTick()
         end 
     end 
     self:AuToQ()
+    self:LeituraSpell()
     --Time DAGGER
     self.dLaftTime = self:MathTime(self.dEndTime - game.time)
     -- Time Pos Dagger
-    self.dCanTime = self:MathTime(self.dStartTime + game.time)
+    --self.dCanTime = self:MathTime(self.dStartTime + game.time)
     --CheckR
     self:CheckTheR()
 
@@ -140,17 +141,15 @@ function NickyKatarina:OnTick()
     if self.mymenu.kat.CanR:get() and not player.buff["katarinarsound"] then
         self:KillR()
     end 
-    if self.mymenu.kat.CanR:get() and self.mymenu.kat.OnlyE:get() and not player.buff["katarinarsound"] then
-        self:LogicE()
-    else 
-        if (self:CountAdaga() > 0) and not player.buff["katarinarsound"] then
-            self:LogicE()
-        else 
-            self:LogicETarget()
-        end 
-    end 
 end 
 
+function NickyKatarina:LeituraSpell()
+    if player:spellSlot(4).name == "SummonerDot" then
+        Ignute = 4
+      elseif player:spellSlot(5).name == "SummonerDot" then
+        Ignute = 5
+    end
+end 
 
 function NickyKatarina:OnUpdateBuff(buff)
     if buff.owner.type == TYPE_HERO and buff.owner.team == TEAM_ALLY and buff.owner.networkID == player.networkID then
@@ -319,6 +318,11 @@ function NickyKatarina:KillR()
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and dmglib.GetSpellDamage(0, target) > HealthEnemy then
             player:castSpell("obj", 0,  target)
         end
+        if player:spellSlot(Ignute).state == 0 then
+            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= 700 and self:DamageIgnite(target) > target.health then
+                player:castSpell("obj", Ignute,  target)
+            end
+        end 
     end 
 end 
 
@@ -354,7 +358,7 @@ end
 function NickyKatarina:DamageIgnite(target)
     if target ~= 0 then
 		local Damage = 0
-        if player:spellSlot(Ignite).state == 0 then
+        if player:spellSlot(Ignute).state == 0 then
 			Damage = (50 + 20 * player.levelRef / 5 * 3)
         end
 		return Damage
