@@ -79,7 +79,7 @@ local function LoadingKat()
 end
 
 function NickyKatarina:OnLoad()
-    orb.combat.register_f_pre_tick(function() self:OnTick() end)
+    cb.add(cb.tick, function() self:OnTick() end)
     cb.add(cb.draw, function() self:OnDraw() end)
     cb.add(cb.updatebuff, function(buff) self:OnUpdateBuff(buff) end)
     cb.add(cb.removebuff, function(buff) self:OnRemoveBuff(buff) end)
@@ -118,7 +118,7 @@ function NickyKatarina:OnTick()
         end 
     end 
     self:AuToQ()
-    self:LeituraSpell()
+   -- self:LeituraSpell()
     --Time DAGGER
     self.dLaftTime = self:MathTime(self.dEndTime - game.time)
     -- Time Pos Dagger
@@ -141,14 +141,6 @@ function NickyKatarina:OnTick()
     if self.mymenu.kat.CanR:get() and not player.buff["katarinarsound"] then
         self:KillR()
     end 
-end 
-
-function NickyKatarina:LeituraSpell()
-    if player:spellSlot(4).name == "SummonerDot" then
-        Ignute = 4
-      elseif player:spellSlot(5).name == "SummonerDot" then
-        Ignute = 5
-    end
 end 
 
 function NickyKatarina:OnUpdateBuff(buff)
@@ -317,11 +309,6 @@ function NickyKatarina:KillR()
         end
         if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and dmglib.GetSpellDamage(0, target) > HealthEnemy then
             player:castSpell("obj", 0,  target)
-        end
-        if player:spellSlot(Ignute).state == 0 then
-            if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= 700 and self:DamageIgnite(target) > target.health then
-                player:castSpell("obj", Ignute,  target)
-            end
         end 
     end 
 end 
