@@ -267,7 +267,7 @@ function sdk.GetGameTime()
 end 
 
 function sdk.VectorPointProjectionOnLineSegment(v1, v2, v)
-    local cx, cy, ax, ay, bx, by = v.x, (v.z or v.y), v1.x, (v1.z or v1.y), v2.x, (v2.z or v2.y)
+    local cx, cy, ax, ay, bx, by = v.pos.x, (v.pos.z or v.pos.y), v1.x, (v1.z or v1.y), v2.x, (v2.z or v2.y)
     local rL = ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / ((bx - ax) ^ 2 + (by - ay) ^ 2)
     local pointLine = { x = ax + rL * (bx - ax), z = ay + rL * (by - ay) }
     local rS = rL < 0 and 0 or (rL > 1 and 1 or rL)
