@@ -161,7 +161,7 @@ end
 
 function NickyKatarina:OnCreateObj(obj)
     if obj then 
-        if string.find(obj.name, "Katarina_Base_W_Indicator_Ally") then
+        if string.find(obj.name, "W_Indicator_Ally") then
             self.DaggerRal[obj.ptr] = obj
             self.dStartTime = game.time + 1.1 - 0.2
             self.dEndTime = game.time + 5.1
@@ -174,7 +174,7 @@ end
 
 function NickyKatarina:OnDeleteObj(obj)
     if obj then 
-        if string.find(obj.name, "Katarina_Base_W_Indicator_Ally") then
+        if string.find(obj.name, "W_Indicator_Ally") then
             self.DaggerRal[obj.ptr] = nil
             self.dStartTime = 0
             self.dEndTime = 0
