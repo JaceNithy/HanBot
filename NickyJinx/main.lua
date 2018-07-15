@@ -100,7 +100,7 @@ local function CanMove(unit)
 end
 
 local function FishBoneActive()
-	if player.buff["jinxq"] then
+	if player.buff["jinxqicon"] then
 		return true;
 	else
 		return false;
@@ -192,23 +192,21 @@ local function LogicQ()
     end 
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if target and target.isVisible and not target.isDead then
-            if not FishBoneActive() and GetDistance(target) > player.attackRange then
+        if target and target.isVisible and not target.isDead  then
+            if not FishBoneActive() and (GetDistance(target) > bonusRange() or #CountEnemyChampAroundObject(target.pos, 250) > 2) then
                 local distance = GetRealDistance(target)
                 if MenuJinx.Keys.ComK:get() and player.mana > 150 then
                     player:castSpell("self", 0)
                 end 
-                else 
-                    if FishBoneActive() and GetDistance(target) < player.attackRange then
-                        player:castSpell("self", 0)
-                    end
-                --end
-            end
+            elseif not FishBoneActive() and MenuJinx.Keys.ComV:get() and player.mana > 150 and #CountEnemyChampAroundObject(player.pos, 2000) > 2 then
+                player:castSpell("self", 0)
+            elseif FishBoneActive() and MenuJinx.Keys.ComV:get() and player.mana < 150 then
+                player:castSpell("self", 0)
+            elseif FishBoneActive() and MenuJinx.Keys.ComV:get() and #CountEnemyChampAroundObject(player.pos, 2000) == 0 then
+                player:castSpell("self", 0)
+            end 
         end 
-    end  
-    if FishBoneActive() and #CountEnemyChampAroundObject(player.pos, 2000) == 0 then
-        player:castSpell("self", 0)
-    end             
+    end    
 end 
 
 local function LogicW()
@@ -217,7 +215,7 @@ local function LogicW()
             local inimigo = common.GetEnemyHeroes()
             for i, target in ipairs(inimigo) do
                 if target and target.isVisible and not target.isDead then
-                    if GetRealDistance(target) > player.attackRange then
+                    if GetRealDistance(target) > player.attackRange and IsValidTarget(target, W.Range) then
                         local wpred = pred.linear.get_prediction(PredW, target)
                         if not wpred then return end
                         if not pred.collision.get_prediction(PredW, wpred, target) then
