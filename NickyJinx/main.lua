@@ -195,7 +195,7 @@ local function LogicQ()
         if target and target.isVisible and not target.isDead then
             if not FishBoneActive() and GetDistance(target) > player.attackRange then
                 local distance = GetRealDistance(target)
-                if MenuJinx.Keys.ComK:get() and (player.mana > 150 or common.CalculateAADamage(target, "AD") * 3 > target.health) then
+                if MenuJinx.Keys.ComK:get() and player.mana > 150 then
                     player:castSpell("self", 0)
                 end 
                 else 
