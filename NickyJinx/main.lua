@@ -76,6 +76,10 @@ local function IsValidTarget(unit, range)
     return unit and unit.isVisible and not unit.isDead and (not range or GetDistance(unit) <= range)
 end
 
+local function GetTrueAttackRange()
+    return player.attackRange + player.collisionRadius + player.boundingRadius
+end 
+
 local function ValidUlt(unit)
 	if (common.HasBuffType(unit, 16) or common.HasBuffType(unit, 15) or common.HasBuffType(unit, 17) or unit.buff["kindredrnodeathbuff"] or common.HasBuffType(unit, 4)) then
 		return false
@@ -166,7 +170,7 @@ MenuJinx.Keys:keybind("ComV", "[Key] Lane", "V", nil)
 local Q = { Range = player.attackRange }
 local W = { Range = 1450, Delay = 0.6, Speed = 3200, Width = 60}
 local E = { Range = 900, Delay = 1.2, Speed = 1600, Width = 50 }
-local R = { Range = math.huge, Delay = 0.7, Speed = 1500, Width = 140 }
+local R = { Range = 6000, Delay = 0.7, Speed = 1500, Width = 140 }
 --Pred
 local PredR = { delay = 0.7; width = 140; speed = 1500; boundingRadiusMod = 1; collision = { hero = true, minion = false };}
 local PredW = { delay = 0.6; width = 55; speed = 3200;  boundingRadiusMod = 1; collision = { hero = true, minion = true };}
@@ -174,46 +178,32 @@ local PredE = { delay = 1.2; radius = 50; speed = 1600;boundingRadiusMod = 1;}
 
 
 local function LogicQ()
-    if MenuJinx.Keys.ComV:get() and not FishBoneActive() and MenuJinx.Qc.farmqout:get() and player.mana > 200 then
-        local enemyMinions = common.GetMinionsInRange(625,  TEAM_ENEMY, mousePos)
-        for i, minion in pairs(enemyMinions) do
-            if minion and not minion.isDead then
-                if IsValidTarget(minion, bonusRange() + 30) and GetDistance(minion) > player.attackRange and GetRealPowPowRange(minion) < GetRealDistance(minion) and bonusRange() < GetRealDistance(minion) then
-                    local hpPred = common.GetPercentHealth(minion)
-                    if hpPred < common.CalculateAADamage(minion, "AD") * 1.1 and hpPred > 5 then
-                        player:castSpell("self", 0)
-                        return;
-                    end 
-                end 
-            end
-        end 
-    elseif	FishBoneActive() and MenuJinx.Keys.ComV:get() then
-        player:castSpell("self", 0)
-    end 
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
-            if not FishBoneActive() and GetDistance(target) > player.attackRange then
-                local distance = GetRealDistance(target)
-                if MenuJinx.Keys.ComK:get() and player.mana > 150 then
-                    player:castSpell("self", 0)
-                end 
-                else 
-                    if FishBoneActive() and GetDistance(target) < player.attackRange then
+            if IsValidTarget(target, bonusRange() - 60) then 
+                if not FishBoneActive() and (GetDistance(target) > player.attackRange or #CountEnemyChampAroundObject(target.pos, 250) > 2) then
+                    local distance = GetRealDistance(target)
+                    if MenuJinx.Keys.ComK:get() and player.mana > 150 then
+                         player:castSpell("self", 0)
+                    elseif FishBoneActive() and GetDistance(target) < player.attackRange then
                         player:castSpell("self", 0)
-                    end
-                --end
-            end
-        end 
-    end  
-    if FishBoneActive() and #CountEnemyChampAroundObject(player.pos, 2000) == 0 then
-        player:castSpell("self", 0)
-    end             
+                    elseif not FishBoneActive() and MenuJinx.Keys.ComK:get() and player.mana > 150 and #CountEnemyChampAroundObject(player.pos, 2000) > 2 then
+                        player:castSpell("self", 0)
+                    elseif FishBoneActive() and MenuJinx.Keys.ComK:get() and player.mana < 150 then
+                        player:castSpell("self", 0)
+                    elseif FishBoneActive() and MenuJinx.Keys.ComK:get() and #CountEnemyChampAroundObject(player.pos, 2000) == 0 then
+                        player:castSpell("self", 0)
+                    end 
+                end
+            end 
+        end     
+    end      
 end 
 
 local function LogicW()
     if #CountEnemyChampAroundObject(player.pos, bonusRange()) == 0 then
-        if MenuJinx.Keys.ComK:get() and player.mana > 150 then
+        if MenuJinx.Keys.ComK:get() and player.mana > 150 and IsValidTarget(target, W.Range) then
             local inimigo = common.GetEnemyHeroes()
             for i, target in ipairs(inimigo) do
                 if target and target.isVisible and not target.isDead then
@@ -291,11 +281,11 @@ local function LogicR()
         local inimigo = common.GetEnemyHeroes()
         for i, target in ipairs(inimigo) do
             if target and target.isVisible and not target.isDead then
-				if IsValidTarget(target, R.Range) and ValidUlt(target) then
+				if IsValidTarget(target, R.Range) then
 					if r_damage(target) > target.health and GetRealDistance(target) > bonusRange() + 200 then
                         local rpred = pred.linear.get_prediction(PredR, target)
                         if not rpred then return end
-                        if not pred.collision.get_prediction(PredR, rpred, target) and GetRealDistance(target) > bonusRange() + 300 + target.boundingRadius and #CountEnemyChampAroundObject(target.pos, 500) == 0 and #CountEnemyChampAroundObject(player.pos, 400) == 0 then
+                        if not pred.collision.get_prediction(PredR, rpred, target) and GetRealDistance(target) > bonusRange() + 300 + target.boundingRadius and #CountEnemyChampAroundObject(player.pos, 400) == 0 then
                             player:castSpell("pos",3,  vec3(rpred.endPos.x, rpred.endPos.y, rpred.endPos.y))
 						elseif #CountEnemyChampAroundObject(target.pos, 200) > 2 then
 							player:castSpell("pos",3,  vec3(rpred.endPos.x, rpred.endPos.y, rpred.endPos.y))
@@ -308,13 +298,14 @@ local function LogicR()
 end 
 
 local function OnTick()
+    if FishBoneActive() and #CountEnemyChampAroundObject(player.pos, 1000) == 0 then
+        player:castSpell("self", 0)
+    end 
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        local rpred = pred.linear.get_prediction(PredR, target)
-        if not rpred then return end
-        if not pred.collision.get_prediction(PredR, rpred, target) then
-            if target and target.isVisible and IsValidTarget(target, R.Range) and not target.isDead and r_damage(target) > target.health then
-                player:castSpell("pos",3,  vec3(rpred.endPos.x, rpred.endPos.y, rpred.endPos.y))
+        if target and target.isVisible and not target.isDead then
+            if FishBoneActive() and GetDistance(target) <= player.attackRange and MenuJinx.Keys.ComK:get() then
+                player:castSpell("self", 0)
             end 
         end 
     end 
@@ -328,7 +319,7 @@ local function OnTick()
     if player:spellSlot(2).state == 0 and MenuJinx.Ec.autoE:get() and MenuJinx.Keys.ComK:get() then
         LogicE()
     end 
-    if player:spellSlot(2).state == 0 and MenuJinx.Rc.autoR:get() then
+    if player:spellSlot(3).state == 0 and MenuJinx.Rc.autoR:get() then
         LogicR()
     end 
 end 
@@ -377,6 +368,10 @@ local function OnDen()
         if player:spellSlot(1).state == 0 and MenuJinx.Dt.DW:get() then
             graphics.draw_circle(player.pos, W.Range, 2, graphics.argb(255, 255, 204, 255), 100)
         end 
+        if FishBoneActive() then
+            graphics.draw_circle(player.pos, bonusRange(), 2, graphics.argb(255, 255, 204, 255), 100)
+        end 
+
         if player:spellSlot(2).state == 0 and MenuJinx.Dt.DE:get() then
             graphics.draw_circle(player.pos, E.Range, 2, graphics.argb(255, 255, 255, 255), 100)
         end 
