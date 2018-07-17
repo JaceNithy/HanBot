@@ -203,7 +203,7 @@ end
 
 local function LogicW()
     if #CountEnemyChampAroundObject(player.pos, bonusRange()) == 0 then
-        if MenuJinx.Keys.ComK:get() and player.mana > 150 and IsValidTarget(target, W.Range) then
+        if MenuJinx.Keys.ComK:get() and player.mana > 150 and IsValidTarget(target, W.Range - 150) then
             local inimigo = common.GetEnemyHeroes()
             for i, target in ipairs(inimigo) do
                 if target and target.isVisible and not target.isDead then
@@ -222,12 +222,7 @@ local function LogicW()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
             if IsValidTarget(target, W.Range - 150) and GetDistance(target) > bonusRange() then
-				
-				local comboDmg = dmglib.GetSpellDamage(1, target)
-				if player.mana > 200 then
-					comboDmg = comboDmg + r_damage(target)
-				end
-				if comboDmg > target.health and ValidUlt(target) then
+				if ValidUlt(target) then
                     local wpred = pred.linear.get_prediction(PredW, target)
                     if not pred.collision.get_prediction(PredW, wpred, target) then
                         player:castSpell("pos", 1,  vec3(wpred.endPos.x, game.mousePos.y, wpred.endPos.y))
@@ -285,7 +280,7 @@ local function LogicR()
 					if r_damage(target) > target.health and GetRealDistance(target) > bonusRange() + 200 then
                         local rpred = pred.linear.get_prediction(PredR, target)
                         if not rpred then return end
-                        if not pred.collision.get_prediction(PredR, rpred, target) and GetRealDistance(target) > bonusRange() + 300 + target.boundingRadius and #CountEnemyChampAroundObject(player.pos, 400) == 0 then
+                        if not pred.collision.get_prediction(PredR, rpred, target) and GetRealDistance(target) > bonusRange() + 300 + target.boundingRadius and #CountEnemyChampAroundObject(player.pos, 400) == 0 and #common.GetAllyHeroesInRange(500, target.pos) < 1 then
                             player:castSpell("pos",3,  vec3(rpred.endPos.x, rpred.endPos.y, rpred.endPos.y))
 						elseif #CountEnemyChampAroundObject(target.pos, 200) > 2 then
 							player:castSpell("pos",3,  vec3(rpred.endPos.x, rpred.endPos.y, rpred.endPos.y))
