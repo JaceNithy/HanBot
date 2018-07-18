@@ -113,7 +113,7 @@ local function FishBoneActive()
 end
 
 local function bonusRange()
-	return (700 + player.boundingRadius + 25 * player:spellSlot(0).level)
+	return (player.attackRange + player.boundingRadius + 25 * player:spellSlot(0).level)
 end
 
 local function GetRealPowPowRange(target)
@@ -181,12 +181,12 @@ local function LogicQ()
     local inimigo = common.GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
-            if IsValidTarget(target, bonusRange() - 60) then 
+            if IsValidTarget(target, bonusRange() + 60) then 
                 if not FishBoneActive() and (GetDistance(target) > player.attackRange or #CountEnemyChampAroundObject(target.pos, 250) > 2) then
                     local distance = GetRealDistance(target)
                     if MenuJinx.Keys.ComK:get() and player.mana > 150 then
                          player:castSpell("self", 0)
-                    elseif FishBoneActive() and GetDistance(target) < player.attackRange then
+                    elseif FishBoneActive() and GetDistance(target) <= player.attackRange  then
                         player:castSpell("self", 0)
                     elseif not FishBoneActive() and MenuJinx.Keys.ComK:get() and player.mana > 150 and #CountEnemyChampAroundObject(player.pos, 2000) > 2 then
                         player:castSpell("self", 0)
@@ -293,6 +293,7 @@ local function LogicR()
 end 
 
 local function OnTick()
+    if player.isDead then return end 
     if FishBoneActive() and #CountEnemyChampAroundObject(player.pos, 1000) == 0 then
         player:castSpell("self", 0)
     end 
@@ -331,7 +332,7 @@ local function OnProcess(spell)
         local inimigo = common.GetEnemyHeroes()
         for i, target in ipairs(inimigo) do
             if GetDistance(target) < E.Range then
-                self.grabTime = os.clock()
+                grabTime = os.clock()
             end 
         end   
     end
