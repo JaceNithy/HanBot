@@ -81,10 +81,8 @@ end
 function NickyKatarina:OnLoad()
     cb.add(cb.tick, function() self:OnTick() end)
     cb.add(cb.draw, function() self:OnDraw() end)
-    cb.add(cb.updatebuff, function(buff) self:OnUpdateBuff(buff) end)
-    cb.add(cb.removebuff, function(buff) self:OnRemoveBuff(buff) end)
-    cb.add(cb.createobj, function(obj) self:OnCreateObj(obj) end)
-    cb.add(cb.deleteobj, function(obj) self:OnDeleteObj(obj) end)
+    cb.add(cb.create_particle, function(obj) self:OnCreateObj(obj) end)
+    cb.add(cb.delete_particle, function(obj) self:OnDeleteObj(obj) end)
 end 
 
 function NickyKatarina:MenuKat()
@@ -140,22 +138,6 @@ function NickyKatarina:OnTick()
     end 
     if self.mymenu.kat.CanR:get() and not player.buff["katarinarsound"] then
         self:KillR()
-    end 
-end 
-
-function NickyKatarina:OnUpdateBuff(buff)
-    if buff.owner.type == TYPE_HERO and buff.owner.team == TEAM_ALLY and buff.owner.networkID == player.networkID then
-        if string.lower(buff.name) == "katarinarsound" then
-            self.RDance = true
-        end 
-    end 
-end 
-
-function NickyKatarina:OnRemoveBuff(buff)
-    if buff.owner.type == TYPE_HERO and buff.owner.team == TEAM_ALLY and buff.owner.networkID == player.networkID then
-        if string.lower(buff.name) == "katarinarsound" then
-            self.RDance = false
-        end 
     end 
 end 
 
