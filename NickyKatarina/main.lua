@@ -3,22 +3,8 @@ local EvadeInternal = module.internal("evade");
 local pred = module.internal("pred");
 local ts = module.internal('TS');
 
-local avada_lib = module.lib('avada_lib')
 --Avada Lib
-local common = avada_lib.common
-local dmglib = avada_lib.damageLib
---local sdk = NickyLib.sdk
 
-local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing your code
-	local enemies_in_range = {}
-	for i = 0, objManager.enemies_n - 1 do
-		local enemy = objManager.enemies[i]
-		if pos:dist(enemy.pos) < range and common.IsValidTarget(enemy) then
-			enemies_in_range[#enemies_in_range + 1] = enemy
-		end
-	end
-	return enemies_in_range
-end
 
 --Real HP
 local function GetRealHP(unit, dmgType)
@@ -38,6 +24,79 @@ local function GetDistance(p1, p2)
     return math.sqrt(squaredDistance)
 end
 
+local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing your code
+	local enemies_in_range = {}
+	for i = 0, objManager.enemies_n - 1 do
+		local enemy = objManager.enemies[i]
+		if pos:dist(enemy.pos) < range  then
+			enemies_in_range[#enemies_in_range + 1] = enemy
+		end
+	end
+	return enemies_in_range
+end
+
+
+local unitsenemies = { }
+local unitsallies = { }
+
+local function find_place_and_insert(t, c, o, v)
+    local dead_place = nil
+    for i = 1, c do
+      local tmp = t[i]
+      if not v(tmp) then
+        dead_place = i
+        break
+      end
+    end
+    if dead_place then
+      t[dead_place] = o
+    else
+      c = c + 1
+      t[c] = o
+    end
+    return c
+  end
+
+  
+local function valid_hero(hero)
+    return hero and hero.type == TYPE_HERO
+  end
+
+  local function check_add_hero(o)
+    if valid_hero(o) then
+      if o.team == TEAM_ALLY then
+        find_place_and_insert(unitsallies, #unitsallies, o, valid_hero)
+      else
+        find_place_and_insert(unitsenemies, #unitsenemies, o, valid_hero)
+      end
+    end
+  end
+
+  objManager.loop(function(obj)
+    check_add_hero(obj)
+  end)
+
+  -- Returns table of enemy hero.obj
+  local function GetEnemyHeroes()
+    return unitsenemies
+end
+  
+local function RDance()
+    local gametime = game.time
+    local buffstart = buff.startTime + 4
+    local buffend =  buff.endTime
+    for i = 0, player.buffManager.count - 1 do
+        local buff = player.buffManager:get(i)
+        if buff and buff.valid and buff.name == 'katarinarsound' then
+            if gametime <= buffend then
+                return true, buffstart
+            end  
+        end 
+    end
+    return false, 0 
+end
+
+
 --[[local function IsValidTarget(unit, range)
     local range = range or math.huge
     local distance = GetDistance(unit)
@@ -55,10 +114,8 @@ NickyKatarina.DaggerRal = { }
 NickyKatarina.dStartTime = 0 
 NickyKatarina.dEndTime = 0
 NickyKatarina.dLaftTime = 0
-NickyKatarina.CountDagger = 0
 NickyKatarina.dCanTime = 0
 NickyKatarina.dState = false
-NickyKatarina.RDance = false
 --NickyKatarina.Position = vec3(0, 0, 0)
 
 --Spells
@@ -109,35 +166,26 @@ function NickyKatarina:MenuKat()
     self.mymenu.kat:keybind("ComK", "[Key] Combo", "Space", nil)
 end 
 
+
+
 function NickyKatarina:OnTick()
-    if self.RDance then
-        if #EnemysInrange(player.pos, 550 + 10) == 0 then
-            player:move(mousePos)
-        end 
-    end 
-    self:AuToQ()
+   -- self:AuToQ()
    -- self:LeituraSpell()
     --Time DAGGER
     self.dLaftTime = self:MathTime(self.dEndTime - game.time)
     -- Time Pos Dagger
     --self.dCanTime = self:MathTime(self.dStartTime + game.time)
     --CheckR
-    self:CheckTheR()
+    ---self:CheckTheR()
 
-    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
+    if self.mymenu.kat.ComK:get() and not RDance() then
         self:LogicQ() 
     end 
-    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
+    if self.mymenu.kat.ComK:get()and not RDance()  then
         self:LogicE()     
     end 
-    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
+    if self.mymenu.kat.ComK:get()and not RDance() then
         self:LogicW()
-    end 
-    if self.mymenu.kat.ComK:get() and not player.buff["katarinarsound"] then
-        self:LogicR()
-    end 
-    if self.mymenu.kat.CanR:get() and not player.buff["katarinarsound"] then
-        self:KillR()
     end 
 end 
 
@@ -182,7 +230,7 @@ function NickyKatarina:OnDraw()
             graphics.draw_circle(player.pos, self.SpellR.Range, 2, graphics.argb(255, 255, 204, 255), 100)
         end
     end 
-    if self:CountAdaga() > 0  and self.mymenu.kat.DTD:get() then
+    if (self:CountAdaga() > 0)  and self.mymenu.kat.DTD:get() then
         for _, Adaga in pairs(self.DaggerRal) do
             if Adaga then
                 if player.isVisible and player.isOnScreen and not player.isDead then
@@ -197,8 +245,20 @@ function NickyKatarina:OnDraw()
     end
 end 
 
+function NickyKatarina:CountAdaga()
+	local count = 0
+	for _ in pairs(self.DaggerRal) do
+		count = count + 1
+	end
+	return count
+end
+
+function NickyKatarina:MathTime(t) 
+    return math.floor((t) * 100) * 0.01
+end
+
 function NickyKatarina:LogicQ()
-    local inimigo = common.GetEnemyHeroes()
+    local inimigo = GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
             if player:spellSlot(0).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
@@ -209,9 +269,9 @@ function NickyKatarina:LogicQ()
 end 
 
 function NickyKatarina:AuToQ()
-    local inimigo = common.GetEnemyHeroes()
+    local inimigo = GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if target and target.isVisible and not target.isDead and not self.RDance then
+        if target and target.isVisible and not target.isDead and not RDance() then
             if player:spellSlot(0).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
                 player:castSpell("obj", 0, target)
             end 
@@ -220,7 +280,7 @@ function NickyKatarina:AuToQ()
 end 
 
 function NickyKatarina:LogicW()
-    local inimigo = common.GetEnemyHeroes()
+    local inimigo = GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
             if player:spellSlot(1).state == 0 and GetDistanceSqr(player, target) < self.SpellW.Range/2 * self.SpellW.Range/2 then
@@ -231,7 +291,7 @@ function NickyKatarina:LogicW()
 end 
 
 function NickyKatarina:LogicE()
-    local inimigo = common.GetEnemyHeroes()
+    local inimigo = GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if (self:CountAdaga() > 0) then
             for _, Adaga in pairs(self.DaggerRal) do
@@ -259,55 +319,13 @@ function NickyKatarina:LogicE()
 end 
 
 function NickyKatarina:LogicETarget()
-    local inimigo = common.GetEnemyHeroes()
+    local inimigo = GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
         if target and target.isVisible and not target.isDead then
             if player:spellSlot(2).state == 0 and IsValidTarget(target, self.SpellE.Range) then
                 player:castSpell("pos", 2, target.pos)
             end 
         end 
-    end 
-end 
-
-function NickyKatarina:LogicR()
-    local inimigo = common.GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        if player:spellSlot(3).state == 0 and #EnemysInrange(player.pos, 550 - 100) >= self.mymenu.kat.Rhitenemy:get() and target and target.isVisible and common.IsValidTarget(target) and not target.isDead and player.pos:dist(target.pos) <= self.SpellR.Range then
-            player:castSpell("pos", 3, player.pos)
-        end 
-    end 
-end 
-
-function NickyKatarina:KillR()
-    local inimigo = common.GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        local HealthEnemy = common.GetShieldedHealth("ap", target)
-        local dsadasdasda = common.GetShieldedHealth("ad", target)
-        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellR.Range and self:GetRDamage(target) > HealthEnemy then
-            player:castSpell("pos", 3, player.pos)
-        end 
-        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and dmglib.GetSpellDamage(2, target) > HealthEnemy then
-            player:castSpell("pos", 2,  target.pos)
-        end
-        if target and target.isVisible and common.IsValidTarget(target) and not target.isDead and GetDistance(target) <= self.SpellE.Range and dmglib.GetSpellDamage(0, target) > HealthEnemy then
-            player:castSpell("obj", 0,  target)
-        end 
-    end 
-end 
-
-function NickyKatarina:CheckTheR()
-    if self.RDance then
-        if (EvadeInternal) then
-            EvadeInternal.core.set_pause(math.huge)
-        end 
-        orb.core.set_pause_move(math.huge)
-        orb.core.set_pause_attack(math.huge)
-    else 
-        if (EvadeInternal) then
-            EvadeInternal.core.set_pause(0)
-        end 
-        orb.core.set_pause_move(0)
-        orb.core.set_pause_attack(0)
     end 
 end 
 
@@ -354,9 +372,9 @@ end
 
 --Logic Dagger
 
---[[function NickyKatarina:GetDaggers(daggers)
+function NickyKatarina:GetDaggers(daggers)
     return daggers.name == "Katarina_Base_W_Indicator_Ally" and daggers.isVisible and daggers.health == 100 
-end ]]
+end 
 
 function NickyKatarina:LogicDistance(position, target)
     local targetPos = vec3(target.x, target.y, target.z)
@@ -394,16 +412,8 @@ function NickyKatarina:GetBestDaggerPoint(position, target)
     return positionPos:ext(targetPos, 150)
 end 
 
-function NickyKatarina:CountAdaga()
-	local count = 0
-	for _ in pairs(self.DaggerRal) do
-		count = count + 1
-	end
-	return count
-end
-
 function NickyKatarina:IsUnderTurretEnemy(pos)
-    enemyTowers = common.GetEnemyTowers()
+    enemyTowers = GetEnemyTowers()
     for i = 1, #enemyTowers do
 		local tower = enemyTowers[i]
         local turretPos = vec3(tower.x, tower.y, tower.z)
