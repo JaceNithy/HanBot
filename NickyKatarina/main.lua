@@ -77,23 +77,25 @@ local function valid_hero(hero)
   end)
 
   -- Returns table of enemy hero.obj
-  local function GetEnemyHeroes()
+local function GetEnemyHeroes()
     return unitsenemies
 end
   
+local Rative = false
+local TimeR = 0
 local function RDance()
     local gametime = game.time
-    local buffstart = buff.startTime + 4
-    local buffend =  buff.endTime
     for i = 0, player.buffManager.count - 1 do
         local buff = player.buffManager:get(i)
-        if buff and buff.valid and buff.name == 'katarinarsound' then
-            if gametime <= buffend then
+        if buff and buff.valid and buff.name == "katarinarsound" and buff.owner == player then
+            local buffstart = buff.startTime 
+            local buffend =  buff.endTime
+            if gametime <= buffstart then
                 return true, buffstart
             end  
         end 
     end
-    return false, 0 
+    return false, 0, buffend
 end
 
 
@@ -136,7 +138,7 @@ local function LoadingKat()
 end
 
 function NickyKatarina:OnLoad()
-    cb.add(cb.tick, function() self:OnTick() end)
+    orb.combat.register_f_pre_tick(function() self:OnTick() end)
     cb.add(cb.draw, function() self:OnDraw() end)
     cb.add(cb.create_particle, function(obj) self:OnCreateObj(obj) end)
     cb.add(cb.delete_particle, function(obj) self:OnDeleteObj(obj) end)
@@ -176,16 +178,35 @@ function NickyKatarina:OnTick()
     -- Time Pos Dagger
     --self.dCanTime = self:MathTime(self.dStartTime + game.time)
     --CheckR
-    ---self:CheckTheR()
+    self:CheckTheR()
 
-    if self.mymenu.kat.ComK:get() and not RDance() then
+
+
+    if self.mymenu.kat.ComK:get() and not Rative == true then
         self:LogicQ() 
     end 
-    if self.mymenu.kat.ComK:get()and not RDance()  then
+    if self.mymenu.kat.ComK:get() and not Rative == true then
         self:LogicE()     
     end 
-    if self.mymenu.kat.ComK:get()and not RDance() then
+    if self.mymenu.kat.ComK:get() and not Rative == true then
         self:LogicW()
+        self:LogicR()
+    end 
+end 
+
+function NickyKatarina:CheckTheR()
+    if Rative == true then
+        if (EvadeInternal) then
+            EvadeInternal.core.set_pause(math.huge)
+        end 
+        orb.core.set_pause_move(math.huge)
+        orb.core.set_pause_attack(math.huge)
+    else 
+        if (EvadeInternal) then
+            EvadeInternal.core.set_pause(0)
+        end 
+        orb.core.set_pause_move(0)
+        orb.core.set_pause_attack(0)
     end 
 end 
 
@@ -200,6 +221,13 @@ function NickyKatarina:OnCreateObj(obj)
         --   self.CountDagger = self.CountDagger + 1
         end 
     end 
+    if obj then
+        if string.find(obj.name, "Base_R_cas") then
+            Rative = true
+            TimeR = game.time + 1
+             -- Base_r_tar
+        end 
+    end
 end
 
 function NickyKatarina:OnDeleteObj(obj)
@@ -213,6 +241,13 @@ function NickyKatarina:OnDeleteObj(obj)
         --    self.CountDagger = self.CountDagger - 1
         end 
     end 
+    if obj then
+        if string.find(obj.name, "Base_R_cas") then
+            Rative = false
+            TimeR = 0
+             -- Base_r_tar
+        end 
+    end
 end 
 
 function NickyKatarina:OnDraw()
@@ -271,7 +306,7 @@ end
 function NickyKatarina:AuToQ()
     local inimigo = GetEnemyHeroes()
     for i, target in ipairs(inimigo) do
-        if target and target.isVisible and not target.isDead and not RDance() then
+        if target and target.isVisible and not target.isDead then
             if player:spellSlot(0).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
                 player:castSpell("obj", 0, target)
             end 
@@ -286,6 +321,15 @@ function NickyKatarina:LogicW()
             if player:spellSlot(1).state == 0 and GetDistanceSqr(player, target) < self.SpellW.Range/2 * self.SpellW.Range/2 then
                 player:castSpell("self", 1)
             end 
+        end 
+    end 
+end 
+
+function NickyKatarina:LogicR()
+    local inimigo = GetEnemyHeroes()
+    for i, target in ipairs(inimigo) do
+        if player:spellSlot(3).state == 0 and target and target.isVisible and not target.isDead and player.pos:dist(target.pos) < 490 then
+            player:castSpell("pos", 3, player.pos)
         end 
     end 
 end 
