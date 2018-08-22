@@ -1,16 +1,10 @@
-local orb = module.internal("orb");
-local EvadeInternal = module.internal("evade");
-local pred = module.internal("pred");
-local ts = module.internal('TS');
+--Katarina
 
---Avada Lib
-
-
---Real HP
-local function GetRealHP(unit, dmgType)
-    local mod = dmgType == 0 and unit.magicalShield or unit.allShield
-    return unit.health + mod
-end
+local pred = module.internal("pred")
+local ts = module.internal("TS")
+local orb = module.internal("orb")
+local EvadeInternal = module.seek("evade")
+local libss = module.load("NickyKatarina", "libss")
 
 local function GetDistanceSqr(p1, p2)
     local p2 = p2 or player
@@ -36,166 +30,170 @@ local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing you
 end
 
 
-local unitsenemies = { }
-local unitsallies = { }
 
-local function find_place_and_insert(t, c, o, v)
-    local dead_place = nil
-    for i = 1, c do
-      local tmp = t[i]
-      if not v(tmp) then
-        dead_place = i
-        break
-      end
-    end
-    if dead_place then
-      t[dead_place] = o
-    else
-      c = c + 1
-      t[c] = o
-    end
-    return c
-  end
+local q = { Range = 625, Dagger = { }, DaggerStart = 0, DaggerEnd = 0, CoutD = 0 }
+local w = { Range = 150, DaggerMis = { }, DaggerStartMis = 0, DaggerEndMis = 0 }
+local e = { Range = 700 }
+local r = { Range = 550, RCasting = false, TimeR = 0 }
+local Posis = vec3(0,0,0)
+local WPos = vec3(0,0,0)
+local ComboNum = 0
 
-  
-local function valid_hero(hero)
-    return hero and hero.type == TYPE_HERO
-  end
+local MenuKatarina = menu("Nicky [Katarina]", "Katarina:By Nicky")
+--Combo
+MenuKatarina:menu("kat", "Combo [Katarina]")
+MenuKatarina.kat:boolean("EAA", "Only use e if target is outside auto attack range", true)
+MenuKatarina.kat:boolean("CQ", "Use [Q]", true)
+MenuKatarina.kat:boolean("CW", "Use [W]", true)
+MenuKatarina.kat:boolean("CE", "Use [E]", true)
+MenuKatarina.kat:boolean("CR", "Use [R]", true)
+--ModR
+MenuKatarina.kat:dropdown("UR", "[R] Utility: ", 2, {"Always", "Killable", "Never"})
+--Harass
+---MenuKatarina:menu("katH", "Harass [Katarina]")
+--MenuKatarina.katH:boolean("HQ", "Use [Q] Harass", true)
+---MenuKatarina.katH:boolean("HE", "Use [E] Harass", true)
+--Lane
+MenuKatarina:menu("katL", "Lane [Katarina]")
+MenuKatarina.katL:boolean("LQ", "Use [Q] Lane", true)
+--MenuKatarina.katL:boolean("LE", "Use [E] Lane", true)
+--Killable
+MenuKatarina:menu("katK", "Killable [Katarina]")
+MenuKatarina.katK:boolean("KQ", "Use [Q] Killable", true)
+MenuKatarina.katK:boolean("KE", "Use [E] Killable", true)
+--DaggerOps
+MenuKatarina:menu("katD", "Dagger Options [Katarina]")
+MenuKatarina.katD:boolean("EFE", "Use [E] Dagger", true)
+MenuKatarina.katD:boolean("DG", "Only [E]", true)
+--Draw
+MenuKatarina:menu("katDra", "Drawing [Katarina]")
+MenuKatarina.katDra:boolean("DQ", "Draw [Q]", true)
+MenuKatarina.katDra:boolean("DE", "Draw [E]", true)
+MenuKatarina.katDra:boolean("DD", "Draw [Dagger]", true)
+--Keys
+MenuKatarina:menu("katKeys", "Keys [Katarina]")
+MenuKatarina.katKeys:keybind("CK", "Combo [Key]", "Space", nil)
+MenuKatarina.katKeys:keybind("CL", "Lane [Key]", "V", nil)
 
-  local function check_add_hero(o)
-    if valid_hero(o) then
-      if o.team == TEAM_ALLY then
-        find_place_and_insert(unitsallies, #unitsallies, o, valid_hero)
-      else
-        find_place_and_insert(unitsenemies, #unitsenemies, o, valid_hero)
-      end
-    end
-  end
-
-  objManager.loop(function(obj)
-    check_add_hero(obj)
-  end)
-
-  -- Returns table of enemy hero.obj
-local function GetEnemyHeroes()
-    return unitsenemies
-end
-  
-local Rative = false
-local TimeR = 0
-local function RDance()
-    local gametime = game.time
-    for i = 0, player.buffManager.count - 1 do
-        local buff = player.buffManager:get(i)
-        if buff and buff.valid and buff.name == "katarinarsound" and buff.owner == player then
-            local buffstart = buff.startTime 
-            local buffend =  buff.endTime
-            if gametime <= buffstart then
-                return true, buffstart
-            end  
-        end 
-    end
-    return false, 0, buffend
-end
-
-
---[[local function IsValidTarget(unit, range)
-    local range = range or math.huge
-    local distance = GetDistance(unit)
-    return unit and not unit.isDead and unit.isVisible and distance <= range
-end]]
 
 local function IsValidTarget(unit, range)
     return unit and unit.isVisible and not unit.isDead and (not range or GetDistance(unit) <= range)
 end
 
-local NickyKatarina = { }
-
---Variable
-NickyKatarina.DaggerRal = { }
-NickyKatarina.dStartTime = 0 
-NickyKatarina.dEndTime = 0
-NickyKatarina.dLaftTime = 0
-NickyKatarina.dCanTime = 0
-NickyKatarina.dState = false
---NickyKatarina.Position = vec3(0, 0, 0)
-
---Spells
--- Q = 0
--- W = 1
--- E = 2 
--- R = 3
-NickyKatarina.SpellQ = { Range = 625 }
-NickyKatarina.SpellW = { Range = 340 }
-NickyKatarina.DanggerSpell = { Range = 340 }
-NickyKatarina.SpellE = { Range = 725 }
-NickyKatarina.SpellR = { Range = 550 }
-
-
-local function LoadingKat()
-    NickyKatarina:OnLoad()
-    NickyKatarina:MenuKat()
+local function ST(res, obj, Distancia)
+	if Distancia > 1000 then return end
+	res.obj = obj
+	return true
 end
 
-function NickyKatarina:OnLoad()
-    orb.combat.register_f_pre_tick(function() self:OnTick() end)
-    cb.add(cb.draw, function() self:OnDraw() end)
-    cb.add(cb.create_particle, function(obj) self:OnCreateObj(obj) end)
-    cb.add(cb.delete_particle, function(obj) self:OnDeleteObj(obj) end)
-end 
-
-function NickyKatarina:MenuKat()
-    self.mymenu = menu("Nicky [Katarina]", "Katarina:By Nicky")
-    self.mymenu:menu("kat", "Settings [Katarina]")
-    self.mymenu.kat:header("XXd", "[Settings Q]")
-    self.mymenu.kat:boolean("AFE", "Use [Q]", true)
-    self.mymenu.kat:header("xdD", "[Settings W]")
-    self.mymenu.kat:boolean("UT", "Use [W]", true)
-    self.mymenu.kat:header("xd", "[Settings E]")
-    self.mymenu.kat:boolean("RC", "Use [E] Dagger", true)
-    self.mymenu.kat:boolean("OnlyE", "Only On Dagger", true)
-    self.mymenu.kat:header("x1d", "[Settings R]")
-    self.mymenu.kat:boolean("Keep", "Keep R Active", true) 
-    self.mymenu.kat:boolean("CanR", "KillSteal [R]", true) 
-    self.mymenu.kat:slider("Rhitenemy", "Min. Enemies to Use", 2, 1, 5, 1)
-    self.mymenu.kat:header("x222d", "[Drawings]")
-    self.mymenu.kat:boolean("DQ", "Draw [Q]", true)
-    self.mymenu.kat:boolean("DW", "Draw [W]", true)
-    self.mymenu.kat:boolean("DE", "Draw [E]", true)
-    self.mymenu.kat:boolean("DR", "Draw [R]", true)
-    self.mymenu.kat:boolean("DTD", "Draw Dagger Time", true)
-    self.mymenu.kat:header("x2d", "[Key]")
-    self.mymenu.kat:keybind("ComK", "[Key] Combo", "Space", nil)
-end 
+local function GetTargetSelector()
+	return ts.get_result(ST).obj
+end
 
 
-
-function NickyKatarina:OnTick()
-   -- self:AuToQ()
-   -- self:LeituraSpell()
-    --Time DAGGER
-    self.dLaftTime = self:MathTime(self.dEndTime - game.time)
-    -- Time Pos Dagger
-    --self.dCanTime = self:MathTime(self.dStartTime + game.time)
-    --CheckR
-    self:CheckTheR()
-
-
-
-    if self.mymenu.kat.ComK:get() and not Rative == true then
-        self:LogicQ() 
+local function ObjDagger(obj)
+    if obj and obj.name then 
+        if string.find(obj.name, "W_Indicator_Ally") then
+            q.Dagger[obj.ptr] = obj 
+            q.DaggerStart = game.time +  1.1 - 0.2
+            q.DaggerEnd = game.time + 5.1
+            q.CoutD = q.CoutD + 1
+        end 
     end 
-    if self.mymenu.kat.ComK:get() and not Rative == true then
-        self:LogicE()     
+    if obj and obj.name then 
+        if string.find(obj.name, "W_Mis") then
+            w.DaggerMis[obj.ptr] = obj 
+            w.DaggerStartMis = game.time + 1.1 - 0.2
+            w.DaggerEndMis = game.time + 5.1
+        end 
     end 
-    if self.mymenu.kat.ComK:get() and not Rative == true then
-        self:LogicW()
-        self:LogicR()
+    if obj and obj.name then 
+        if string.find(obj.name, "Base_R_cas") then
+            RCasting = true
+            TimeR = game.time + 1
+        end 
+    end 
+end
+
+local function ObjDelete(obj)
+    if obj and obj.name then 
+        if string.find(obj.name, "W_Indicator_Ally") then
+            q.Dagger[obj.ptr] = nil 
+            q.DaggerStart = 0
+            q.DaggerEnd = 0
+            q.CoutD = q.CoutD - 1
+        end 
+    end 
+    if obj and obj.name then 
+        if string.find(obj.name, "W_Mis") then
+            w.DaggerMis[obj.ptr] = nil 
+            w.DaggerStartMis = 0
+            w.DaggerEndMis = 0
+        end 
+    end
+    if obj and obj.name then 
+        if string.find(obj.name, "Base_R_cas") then
+            RCasting = false
+            TimeR = 0
+        end 
     end 
 end 
 
-function NickyKatarina:CheckTheR()
-    if Rative == true then
+local function CountAdaga()
+	local count = 0
+	for _ in pairs(q.Dagger) do
+		count = count + 1
+	end
+	return count
+end
+
+local function CastW()
+    player:castSpell("self", 1)
+end 
+
+local function DamageR(target)
+    if target ~= 0 then
+		local Damage = 0
+		local DamageAP = {375, 562.5, 750}
+        if player:spellSlot(3).state == 0 then
+			Damage = (DamageAP[player:spellSlot(3).level] + 3.3 * player.bonusSpellBlock + 2.85 * player.flatMagicDamageMod)
+        end
+		return Damage
+	end
+	return 0
+end
+
+local function DamageE(target)
+    if target ~= 0 then
+		local Damage = 0
+		local DamageSpell = {15, 30, 45, 60, 75}
+
+        if player:spellSlot(2).state == 0 then
+			Damage = (DamageSpell[player:spellSlot(2).level] + 0.50 * player.bonusSpellBlock + 0.25 * player.flatMagicDamageMod)
+        end
+		return Damage
+	end
+	return 0
+end
+
+local function DamageW()
+    return 0
+end 
+
+local function DamageQ(target)
+    if target ~= 0 then
+		local Damage = 0
+		local DamageAP = {75, 105, 135, 165, 195 }
+        if player:spellSlot(0).state == 0 then
+			Damage = (DamageAP[player:spellSlot(0).level] + 0.30 * player.flatMagicDamageMod)
+        end
+		return Damage
+	end
+	return 0
+end 
+
+local function HasRBuff()
+    if RCasting == true then
         if (EvadeInternal) then
             EvadeInternal.core.set_pause(math.huge)
         end 
@@ -210,217 +208,39 @@ function NickyKatarina:CheckTheR()
     end 
 end 
 
-function NickyKatarina:OnCreateObj(obj)
-    if obj then 
-        if string.find(obj.name, "W_Indicator_Ally") then
-            self.DaggerRal[obj.ptr] = obj
-            self.dStartTime = game.time + 1.1 - 0.2
-            self.dEndTime = game.time + 5.1
-            self.dLaftTime = 5.1
-            self.dCanTime = 1.1 - 0.2
-        --   self.CountDagger = self.CountDagger + 1
-        end 
+
+local function OnDraw()
+    if MenuKatarina.katDra.DQ:get() and player:spellSlot(0).state == 0 then
+        graphics.draw_circle(player.pos, q.Range, 2, graphics.argb(255, 255, 204, 255), 100) 
     end 
-    if obj then
-        if string.find(obj.name, "Base_R_cas") then
-            Rative = true
-            TimeR = game.time + 1
-             -- Base_r_tar
-        end 
-    end
-end
-
-function NickyKatarina:OnDeleteObj(obj)
-    if obj then 
-        if string.find(obj.name, "W_Indicator_Ally") then
-            self.DaggerRal[obj.ptr] = nil
-            self.dStartTime = 0
-            self.dEndTime = 0
-            self.dLaftTime = 0
-            self.dCanTime = 0
-        --    self.CountDagger = self.CountDagger - 1
-        end 
+    if MenuKatarina.katDra.DE:get() and player:spellSlot(2).state == 0 then
+        graphics.draw_circle(player.pos, e.Range, 2, graphics.argb(255, 255, 255, 255), 100) 
     end 
-    if obj then
-        if string.find(obj.name, "Base_R_cas") then
-            Rative = false
-            TimeR = 0
-             -- Base_r_tar
-        end 
-    end
-end 
-
-function NickyKatarina:OnDraw()
-    if player.isOnScreen then
-        if player:spellSlot(0).state == 0 and self.mymenu.kat.DQ:get() then
-            graphics.draw_circle(player.pos, self.SpellQ.Range, 2, graphics.argb(255, 0, 204, 255), 100)
-        end 
-        if player:spellSlot(1).state == 0 and self.mymenu.kat.DW:get() then
-            graphics.draw_circle(player.pos, self.SpellW.Range, 2, graphics.argb(255, 255, 255, 255), 100)
-        end
-        if player:spellSlot(2).state == 0 and self.mymenu.kat.DE:get() then
-            graphics.draw_circle(player.pos, self.SpellE.Range, 2, graphics.argb(255, 0, 255, 0), 100)
-        end
-        if player:spellSlot(3).state == 0 and self.mymenu.kat.DR:get() then
-            graphics.draw_circle(player.pos, self.SpellR.Range, 2, graphics.argb(255, 255, 204, 255), 100)
-        end
-    end 
-    if (self:CountAdaga() > 0)  and self.mymenu.kat.DTD:get() then
-        for _, Adaga in pairs(self.DaggerRal) do
-            if Adaga then
-                if player.isVisible and player.isOnScreen and not player.isDead then
-                    if game.time > self.dStartTime  and game.time < self.dEndTime  then
-                        local AdagaPoS = graphics.world_to_screen(Adaga.pos)
-                        local textWidth = graphics.text_area("1.00", 30)
-                        graphics.draw_text_2D(tostring(self.dLaftTime), 30, AdagaPoS.x - (textWidth / 2), AdagaPoS.y, 0xFFffffff) 
-                    end
-                end 
-            end 
-        end 
-    end
-end 
-
-function NickyKatarina:CountAdaga()
-	local count = 0
-	for _ in pairs(self.DaggerRal) do
-		count = count + 1
-	end
-	return count
-end
-
-function NickyKatarina:MathTime(t) 
-    return math.floor((t) * 100) * 0.01
-end
-
-function NickyKatarina:LogicQ()
-    local inimigo = GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        if target and target.isVisible and not target.isDead then
-            if player:spellSlot(0).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
-                player:castSpell("obj", 0, target)
-            end 
-        end 
-    end 
-end 
-
-function NickyKatarina:AuToQ()
-    local inimigo = GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        if target and target.isVisible and not target.isDead then
-            if player:spellSlot(0).state == 0 and IsValidTarget(target, self.SpellQ.Range) then
-                player:castSpell("obj", 0, target)
-            end 
-        end 
-    end 
-end 
-
-function NickyKatarina:LogicW()
-    local inimigo = GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        if target and target.isVisible and not target.isDead then
-            if player:spellSlot(1).state == 0 and GetDistanceSqr(player, target) < self.SpellW.Range/2 * self.SpellW.Range/2 then
-                player:castSpell("self", 1)
-            end 
-        end 
-    end 
-end 
-
-function NickyKatarina:LogicR()
-    local inimigo = GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        if player:spellSlot(3).state == 0 and target and target.isVisible and not target.isDead and player.pos:dist(target.pos) < 490 then
-            player:castSpell("pos", 3, player.pos)
-        end 
-    end 
-end 
-
-function NickyKatarina:LogicE()
-    local inimigo = GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        if (self:CountAdaga() > 0) then
-            for _, Adaga in pairs(self.DaggerRal) do
-                if target and target.isVisible and not target.isDead then
-                    if player:spellSlot(2).state == 0 and IsValidTarget(target, 700) then
-                        if game.time > self.dStartTime then
-                         local DaggerPos = Adaga.pos + (target.pos - Adaga.pos):norm() * 125
-                         local DaggerIsRange = Adaga.pos + (target.pos - Adaga.pos):norm() * 50
-                         local DaggerRange = Adaga.pos + (target.pos - Adaga.pos):norm() * -50
-                            if self:GetBestDaggerPoint(Adaga, target) and GetDistance(target, Adaga) < 450 then
-                                player:castSpell("pos", 2, vec3(DaggerPos))
-                            elseif self:LogicDistance(Adaga, target) and GetDistance(target, Adaga) < 450 then
-                                player:castSpell("pos", 2, vec3(DaggerPos))
-                            elseif self:LogicInstance(Adaga, target) and GetDistance(target, Adaga) < 450 then
-                                player:castSpell("pos", 2, vec3(DaggerRange))
-                            elseif self:ELogic(Adaga, target) and GetDistance(target, Adaga) < 450 then
-                                player:castSpell("pos", 2, vec3(DaggerIsRange))
-                            end 
-                        end    
+    if MenuKatarina.katDra.DD:get() then
+        if (q.CoutD > 0)  then
+            for _, Adaga in pairs(q.Dagger) do
+                if Adaga then
+                    if player.isVisible and player.isOnScreen and not player.isDead then
+                        if game.time >= q.DaggerStart and game.time <= q.DaggerEnd  then
+                            graphics.draw_circle(Adaga.pos, 350, 2, graphics.argb(255, 255, 0, 0), 100) 
+                        end
                     end 
                 end 
             end 
-        end 
+        end
     end 
 end 
 
-function NickyKatarina:LogicETarget()
-    local inimigo = GetEnemyHeroes()
-    for i, target in ipairs(inimigo) do
-        if target and target.isVisible and not target.isDead then
-            if player:spellSlot(2).state == 0 and IsValidTarget(target, self.SpellE.Range) then
-                player:castSpell("pos", 2, target.pos)
-            end 
-        end 
+local function GetBestDaggerPoint(position, target)
+    local targetPos = vec3(target.x, target.y, target.z)
+    local positionPos = vec3(position.x, position.y, position.z)
+    if GetDistanceSqr(targetPos, positionPos) <= 340 * 340 then
+        return position
     end 
+    return positionPos:ext(targetPos, 150)
 end 
 
-function NickyKatarina:GetRDamage(target)
-    if target ~= 0 then
-		local Damage = 0
-		local DamageAP = {375, 562.5, 750}
-
-        if player:spellSlot(3).state == 0 then
-			Damage = (DamageAP[player:spellSlot(3).level] + 3.3 * player.bonusSpellBlock + 2.85 * player.flatMagicDamageMod)
-        end
-		return Damage
-	end
-	return 0
-end
-
-function NickyKatarina:DamageIgnite(target)
-    if target ~= 0 then
-		local Damage = 0
-        if player:spellSlot(Ignute).state == 0 then
-			Damage = (50 + 20 * player.levelRef / 5 * 3)
-        end
-		return Damage
-	end
-	return 0
-end
-
-function NickyKatarina:GetEDamage(target)
-    if target ~= 0 then
-		local Damage = 0
-		local DamageSpell = {15, 30, 45, 60, 75}
-
-        if player:spellSlot(2).state == 0 then
-			Damage = (DamageSpell[player:spellSlot(2).level] + 0.50 * player.bonusSpellBlock + 0.25 * player.flatMagicDamageMod)
-        end
-		return Damage
-	end
-	return 0
-end
-
-function NickyKatarina:MathTime(t) 
-    return math.floor((t) * 100) * 0.01
-end
-
---Logic Dagger
-
-function NickyKatarina:GetDaggers(daggers)
-    return daggers.name == "Katarina_Base_W_Indicator_Ally" and daggers.isVisible and daggers.health == 100 
-end 
-
-function NickyKatarina:LogicDistance(position, target)
+local function LogicDistance(position, target)
     local targetPos = vec3(target.x, target.y, target.z)
     local positionPos = vec3(position.x, position.y, position.z)
     if GetDistanceSqr(targetPos, positionPos) < 340 * 340 then
@@ -429,7 +249,7 @@ function NickyKatarina:LogicDistance(position, target)
     return positionPos:ext(targetPos, 200)
 end 
 
-function NickyKatarina:LogicInstance(position, target)
+local function LogicInstance(position, target)
     local targetPos = vec3(target.x, target.y, target.z)
     local positionPos = vec3(position.x, position.y, position.z)
     if GetDistanceSqr(targetPos, positionPos) < 340 * 340 then
@@ -438,7 +258,7 @@ function NickyKatarina:LogicInstance(position, target)
     return positionPos:ext(targetPos, -50)
 end 
 
-function NickyKatarina:ELogic(position, target)
+local function ELogic(position, target)
     local targetPos = vec3(target.x, target.y, target.z)
     local positionPos = vec3(position.x, position.y, position.z)
     if GetDistanceSqr(targetPos, positionPos) < 340 * 340 then
@@ -447,7 +267,7 @@ function NickyKatarina:ELogic(position, target)
     return positionPos:ext(targetPos, 50)
 end
 
-function NickyKatarina:GetBestDaggerPoint(position, target)
+local function GetBestDaggerPoint(position, target)
     local targetPos = vec3(target.x, target.y, target.z)
     local positionPos = vec3(position.x, position.y, position.z)
     if GetDistanceSqr(targetPos, positionPos) < 340 * 340 then
@@ -456,18 +276,172 @@ function NickyKatarina:GetBestDaggerPoint(position, target)
     return positionPos:ext(targetPos, 150)
 end 
 
-function NickyKatarina:IsUnderTurretEnemy(pos)
-    enemyTowers = GetEnemyTowers()
-    for i = 1, #enemyTowers do
-		local tower = enemyTowers[i]
-        local turretPos = vec3(tower.x, tower.y, tower.z)
-        if GetDistanceSqr(turretPos, pos) < 915*915 then
-            return true
-        end
+local function CastE(target)
+    if MenuKatarina.kat.EAA:get() then
+        if (q.CoutD == 0) and not HasRBuff() then
+            local extends = player.pos:ext(target.pos, -140) 
+            player:castSpell("pos", 2, target.pos)
+        end 
     end 
-    return false
+    for _, Adaga in pairs(q.Dagger) do
+        if Adaga then
+            if game.time >= q.DaggerStart then
+                local DaggerPos = Adaga.pos + (target.pos - Adaga.pos):norm() * 125
+                local DaggerIsRange = Adaga.pos + (target.pos - Adaga.pos):norm() * 50
+                local DaggerRange = Adaga.pos + (target.pos - Adaga.pos):norm() * -50
+                if GetBestDaggerPoint(Adaga, target) and GetDistance(target, Adaga) <= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerPos))
+                elseif LogicDistance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerPos))
+                elseif LogicInstance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerRange))
+                elseif ELogic(Adaga, target) and GetDistance(target, Adaga) <= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerIsRange))
+                end
+            end
+        end 
+    end 
 end
 
---
-LoadingKat()
---
+local function CastW()
+    player:castSpell("self", 1)
+end 
+
+local function CastQ(target)
+    if GetDistance(target) <= 625 then
+        player:castSpell("obj", 0, target)
+    end 
+end 
+
+local function Combo()
+    local target = GetTargetSelector()
+    if not target then return end
+    if GetDistance(target) <= 700 then
+        if (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(1).state == 0 and ComboNum == 0) then
+            if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageW(target) + DamageE(target) + DamageR(target)) then
+                ComboNum = 1;
+            end 
+        elseif (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and ComboNum == 0) then
+            if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageE(target) + DamageR(target)) then
+                ComboNum = 2;
+            end 
+        elseif (player:spellSlot(1).state == 0 and player:spellSlot(2).state == 0 and ComboNum == 0) then
+            if (not HasRBuff() or HasRBuff() and target.health < DamageE(target) + DamageR(target)) then
+                ComboNum = 3;
+            end 
+        elseif (player:spellSlot(2).state == 0 and ComboNum == 0) then
+            if (not HasRBuff() or HasRBuff() and target.health < DamageE(target)) then
+                ComboNum = 4;
+            end 
+        elseif (player:spellSlot(0).state == 0 and ComboNum == 0) then
+            if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target)) then
+                ComboNum = 5;
+            end 
+        elseif (player:spellSlot(1).state == 0 and ComboNum == 0 and GetDistance(target) <= 300) then
+            if (not HasRBuff()) then
+                ComboNum = 6;
+            end 
+        elseif (player:spellSlot(3).state == 0 and ComboNum == 0 and GetDistance(target) <= 400) then
+            ComboNum = 7;
+        end 
+        if (ComboNum == 1) then
+            CastQ(target)
+            libss.DelayAction(function() CastE(target) end, 0.1)
+            libss.DelayAction(function() CastW(target) end, 0.50)
+
+            if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0 and player:spellSlot(1).state ~= 0) then
+                ComboNum = 0;
+            end 
+        end 
+
+        if (ComboNum == 2) then
+            CastQ(target)
+            libss.DelayAction(function() CastE(target) end, 0.1)
+
+            if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0) then
+                ComboNum = 0;
+            end 
+        end 
+
+        if (ComboNum == 3) then
+            libss.DelayAction(function() CastE(target) end, 0.1)
+            libss.DelayAction(function() CastW(target) end, 0.50)
+
+            if (player:spellSlot(1).state ~= 0 and player:spellSlot(2).state ~= 0) then
+                ComboNum = 0;
+            end 
+        end 
+
+        if (ComboNum == 4) then
+            CastE(target)
+            ComboNum = 0;
+        end 
+
+        if (ComboNum == 5) then
+            CastQ(target)
+            ComboNum = 0;
+        end 
+
+        if (ComboNum == 6) then
+            CastW(target)
+            ComboNum = 0;
+        end 
+
+        if (ComboNum == 7) then
+            player:castSpell("pos", 3, player.pos)
+            ComboNum = 0;
+        end     
+    end 
+end 
+
+local function CheckUpR()
+    if RCasting == true and #EnemysInrange(player.pos, 550 + 10) == 0 then
+        player:move(game.mousePos)
+    end 
+end 
+
+local function KillStela()
+    local target = GetTargetSelector()
+    if not target then return end
+    if DamageQ(target) >= target.health then
+        if GetDistance(target) <= 625 then
+            player:castSpell("obj", 0, target)
+        end 
+    end 
+    if DamageE(target) >= target.health then
+        if GetDistance(target) <= 700 then
+            player:castSpell("pos", 2, target.pos)
+        end 
+    end 
+end 
+
+local function LaneClear()
+    local Mindingo = libss.GetMinionsInRange(q.Range, TEAM_ENEMY)
+    for i, minion in pairs(Mindingo) do
+        if minion and not minion.isDead and libss.IsValidTarget(minion) then
+            local MinPos = vec3(minion.x, minion.y, minion.z)
+            if (DamageQ(minion) >= minion.health) then
+                if GetDistance(minion) <= q.Range then
+                    player:castSpell("obj", 0, minion)
+                end 
+            end 
+        end 
+    end 
+end 
+
+local function OnTick()
+    HasRBuff()
+    CheckUpR()
+    KillStela()
+    if (MenuKatarina.katKeys.CK:get()) then
+       Combo()
+    end 
+    if (MenuKatarina.katKeys.CL:get()) then
+        LaneClear()
+    end
+end 
+
+orb.combat.register_f_pre_tick(OnTick)
+cb.add(cb.create_particle, ObjDagger)
+cb.add(cb.delete_particle, ObjDelete)
+cb.add(cb.draw, OnDraw)
