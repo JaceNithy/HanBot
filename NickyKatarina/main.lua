@@ -37,6 +37,7 @@ local e = { Range = 700 }
 local r = { Range = 550, RCasting = false, TimeR = 0 }
 local Posis = vec3(0,0,0)
 local WPos = vec3(0,0,0)
+local DaggerPosition = vec3(0,0,0)
 local ComboNum = 0
 
 local MenuKatarina = menu("Nicky [Katarina]", "Katarina:By Nicky")
@@ -147,10 +148,6 @@ local function CountAdaga()
 	end
 	return count
 end
-
-local function CastW()
-    player:castSpell("self", 1)
-end 
 
 local function DamageR(target)
     if target ~= 0 then
@@ -296,9 +293,10 @@ local function CastE(target)
     for _, Adaga in pairs(q.Dagger) do
         if Adaga then
             if game.time >= q.DaggerStart then
-                local DaggerPos = Adaga.pos + (target.pos - Adaga.pos):norm() * 125
+                local DaggerPos = Adaga.pos + (target.pos - Adaga.pos):norm() * 150
                 local DaggerIsRange = Adaga.pos + (target.pos - Adaga.pos):norm() * 50
                 local DaggerRange = Adaga.pos + (target.pos - Adaga.pos):norm() * -50
+                local DaggerPos2 = Adaga.pos + (target.pos - Adaga.pos):norm() * -150
                 if GetBestDaggerPoint(Adaga, target) and GetDistance(target, Adaga) <= 450 then
                     player:castSpell("pos", 2, vec3(DaggerPos))
                 elseif LogicDistance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
@@ -307,20 +305,26 @@ local function CastE(target)
                     player:castSpell("pos", 2, vec3(DaggerRange))
                 elseif ELogic(Adaga, target) and GetDistance(target, Adaga) <= 450 then
                     player:castSpell("pos", 2, vec3(DaggerIsRange))
-                end
+                elseif LogicInstance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerPos2))
+                end  
             end
         end 
     end 
 end
 
 local function CastW()
-    player:castSpell("self", 1)
+    if WPos then
+        player:castSpell("self", 1)
+        return player.Posis 
+    end 
 end 
 
 local function CastQ(target)
     if GetDistance(target) <= 625 then
         player:castSpell("obj", 0, target)
     end 
+    return q.Dagger[DaggerPosition]
 end 
 
 local function Combo()
