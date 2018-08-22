@@ -43,6 +43,7 @@ local MenuKatarina = menu("Nicky [Katarina]", "Katarina:By Nicky")
 --Combo
 MenuKatarina:menu("kat", "Combo [Katarina]")
 MenuKatarina.kat:boolean("EAA", "Only use e if target is outside auto attack range", true)
+MenuKatarina.kat:slider("CanOln", "Level CanCast [Only]", 6, 1, 18, 1)
 MenuKatarina.kat:boolean("CQ", "Use [Q]", true)
 MenuKatarina.kat:boolean("CW", "Use [W]", true)
 MenuKatarina.kat:boolean("CE", "Use [E]", true)
@@ -276,8 +277,17 @@ local function GetBestDaggerPoint(position, target)
     return positionPos:ext(targetPos, 150)
 end 
 
+local function GetBestDaggerPoint2(position, target)
+    local targetPos = vec3(target.x, target.y, target.z)
+    local positionPos = vec3(position.x, position.y, position.z)
+    if GetDistanceSqr(targetPos, positionPos) >= 340 * 340 then
+        return position
+    end 
+    return positionPos:ext(targetPos, 150)
+end 
+
 local function CastE(target)
-    if MenuKatarina.kat.EAA:get() then
+    if MenuKatarina.kat.EAA:get() and MenuKatarina.kat.CanOln:get() <= player.levelRef then
         if (q.CoutD == 0) and not HasRBuff() then
             local extends = player.pos:ext(target.pos, -140) 
             player:castSpell("pos", 2, target.pos)
@@ -296,6 +306,12 @@ local function CastE(target)
                 elseif LogicInstance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
                     player:castSpell("pos", 2, vec3(DaggerRange))
                 elseif ELogic(Adaga, target) and GetDistance(target, Adaga) <= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerIsRange))
+                elseif GetBestDaggerPoint2(Adaga, target) and GetDistance(target, Adaga) >= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerPos))
+                elseif LogicInstance(Adaga, target) and GetDistance(target, Adaga) >= 450 then
+                    player:castSpell("pos", 2, vec3(DaggerRange))
+                elseif ELogic(Adaga, target) and GetDistance(target, Adaga) >= 450 then
                     player:castSpell("pos", 2, vec3(DaggerIsRange))
                 end
             end
@@ -345,7 +361,7 @@ local function Combo()
             ComboNum = 7
         end 
         if (ComboNum == 1) then
-            CastQ(target)
+            libss.DelayAction(function() CastQ(target) end, 0.4)
             libss.DelayAction(function() CastE(target) end, 0.1)
             libss.DelayAction(function() CastW(target) end, 0.50)
 
@@ -355,7 +371,7 @@ local function Combo()
         end 
 
         if (ComboNum == 2) then
-            CastQ(target)
+            libss.DelayAction(function() CastQ(target) end, 0.4)
             libss.DelayAction(function() CastE(target) end, 0.1)
 
             if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0) then
