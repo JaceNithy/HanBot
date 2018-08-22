@@ -307,12 +307,6 @@ local function CastE(target)
                     player:castSpell("pos", 2, vec3(DaggerRange))
                 elseif ELogic(Adaga, target) and GetDistance(target, Adaga) <= 450 then
                     player:castSpell("pos", 2, vec3(DaggerIsRange))
-                elseif GetBestDaggerPoint2(Adaga, target) and GetDistance(target, Adaga) >= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerPos))
-                elseif LogicInstance(Adaga, target) and GetDistance(target, Adaga) >= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerRange))
-                elseif ELogic(Adaga, target) and GetDistance(target, Adaga) >= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerIsRange))
                 end
             end
         end 
