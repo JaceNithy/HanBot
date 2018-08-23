@@ -22,15 +22,12 @@ local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing you
 	local enemies_in_range = {}
 	for i = 0, objManager.enemies_n - 1 do
 		local enemy = objManager.enemies[i]
-		if pos:dist(enemy.pos) < range  then
+		if pos:dist(enemy.pos) < range and libss.IsValidTarget(enemy)  then
 			enemies_in_range[#enemies_in_range + 1] = enemy
 		end
 	end
 	return enemies_in_range
 end
-
-
-
 local q = { Range = 625, Dagger = { }, DaggerStart = 0, DaggerEnd = 0, CoutD = 0 }
 local w = { Range = 150, DaggerMis = { }, DaggerStartMis = 0, DaggerEndMis = 0 }
 local e = { Range = 700 }
@@ -83,9 +80,10 @@ local function IsValidTarget(unit, range)
 end
 
 local function ST(res, obj, Distancia)
-	if Distancia > 1000 then return end
-	res.obj = obj
-	return true
+    if Distancia < 1000 then 
+        res.obj = obj
+        return true
+    end 
 end
 
 local function GetTargetSelector()
@@ -244,7 +242,7 @@ local function LogicDistance(position, target)
     if GetDistanceSqr(targetPos, positionPos) < 340 * 340 then
         return position
     end 
-    return positionPos:ext(targetPos, 200)
+    return positionPos:ext(targetPos, 200) 
 end 
 
 local function LogicInstance(position, target)
@@ -282,11 +280,11 @@ local function GetBestDaggerPoint2(position, target)
     end 
     return positionPos:ext(targetPos, 150)
 end 
-
+local TimeE = 0
 local function CastE(target)
     if MenuKatarina.kat.EAA:get() and MenuKatarina.kat.CanOln:get() <= player.levelRef then
         if (q.CoutD == 0) and not HasRBuff() then
-            local extends = player.pos:ext(target.pos, -140) 
+            local adasdasdasdas = player.pos + (target.pos - player.pos):norm() * 50 
             player:castSpell("pos", 2, target.pos)
         end 
     end 
@@ -298,15 +296,20 @@ local function CastE(target)
                 local DaggerRange = Adaga.pos + (target.pos - Adaga.pos):norm() * -50
                 local DaggerPos2 = Adaga.pos + (target.pos - Adaga.pos):norm() * -150
                 if GetBestDaggerPoint(Adaga, target) and GetDistance(target, Adaga) <= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerPos))
+                   -- player:castSpell("pos", 2, vec3(DaggerPos))
+                    libss.DelayAction(function() player:castSpell("pos", 2, vec3(DaggerPos)) end, 0.1)
+                    --TimeE = game.time
                 elseif LogicDistance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerPos))
+                    libss.DelayAction(function() player:castSpell("pos", 2, vec3(DaggerPos)) end, 0.1)
                 elseif LogicInstance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerRange))
+                 --   player:castSpell("pos", 2, vec3(DaggerRange))
+                    libss.DelayAction(function() player:castSpell("pos", 2, vec3(DaggerRange)) end, 0.1)
                 elseif ELogic(Adaga, target) and GetDistance(target, Adaga) <= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerIsRange))
+                    --player:castSpell("pos", 2, vec3(DaggerIsRange))
+                    libss.DelayAction(function() player:castSpell("pos", 2, vec3(DaggerIsRange)) end, 0.1)
                 elseif LogicInstance(Adaga, target) and GetDistance(target, Adaga) <= 450 then
-                    player:castSpell("pos", 2, vec3(DaggerPos2))
+                    --player:castSpell("pos", 2, vec3(DaggerPos2))
+                    libss.DelayAction(function() player:castSpell("pos", 2, vec3(DaggerPos2)) end, 0.1)
                 end  
             end
         end 
@@ -351,11 +354,11 @@ local function Combo()
             if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target)) then
                 ComboNum = 5
             end 
-        elseif (player:spellSlot(1).state == 0 and ComboNum == 0 and GetDistance(target) <= 300) then
+        elseif (player:spellSlot(1).state == 0 and ComboNum == 0 and GetDistance(target) <= 250) then
             if (not HasRBuff()) then
                 ComboNum = 6
             end 
-        elseif (player:spellSlot(3).state == 0 and ComboNum == 0 and GetDistance(target) <= 400) then
+        elseif (player:spellSlot(3).state == 0 and ComboNum == 0 and GetDistance(target) <= 300) then
             ComboNum = 7
         end 
         if (ComboNum == 1) then
@@ -422,7 +425,7 @@ local function KillStela()
             player:castSpell("obj", 0, target)
         end 
     end 
-    if DamageE(target) >= target.health then
+    if (DamageE(target) + libss.GetTotalAD(player) >= target.health) then
         if GetDistance(target) <= 700 then
             player:castSpell("pos", 2, target.pos)
         end 
