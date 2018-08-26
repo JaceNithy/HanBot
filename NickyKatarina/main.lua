@@ -1,7 +1,7 @@
 --Katarina
 
 local pred = module.internal("pred")
-local ts = module.internal("TS")
+local ts = module.internal('TS')
 local orb = module.internal("orb")
 local EvadeInternal = module.seek("evade")
 local libss = module.load("NickyKatarina", "libss")
@@ -108,7 +108,7 @@ local function ObjDagger(obj)
         end 
     end 
     if obj and obj.name then 
-        if string.find(obj.name, "Base_R_cas") then
+        if string.find(obj.name, "R_cas") then
             RCasting = true
             TimeR = game.time + 1
         end 
@@ -132,7 +132,7 @@ local function ObjDelete(obj)
         end 
     end
     if obj and obj.name then 
-        if string.find(obj.name, "Base_R_cas") then
+        if string.find(obj.name, "R_cas") then
             RCasting = false
             TimeR = 0
         end 
@@ -332,83 +332,84 @@ end
 
 local function Combo()
     local target = GetTargetSelector()
-    if not target then return end
-    if GetDistance(target) <= 700 then
-        if (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(1).state == 0 and ComboNum == 0) then
-            if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageW(target) + DamageE(target) + DamageR(target)) then
-                ComboNum = 1
+    if target and libss.IsValidTarget(target) then
+        if GetDistance(target) <= 700 then
+            if (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(1).state == 0 and ComboNum == 0) then
+                if (not HasRBuff() or target.health < DamageQ(target) + DamageW(target) + DamageE(target) + DamageR(target)) then
+                    ComboNum = 1
+                end 
+            elseif (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and ComboNum == 0) then
+                if (not HasRBuff() or target.health < DamageQ(target) + DamageE(target) + DamageR(target)) then
+                    ComboNum = 2
+                end 
+            elseif (player:spellSlot(1).state == 0 and player:spellSlot(2).state == 0 and ComboNum == 0) then
+                if (not HasRBuff() or target.health < DamageE(target) + DamageR(target)) then
+                    ComboNum = 3
+                end 
+            elseif (player:spellSlot(2).state == 0 and ComboNum == 0) then
+                if (not HasRBuff() or target.health < DamageE(target)) then
+                    ComboNum = 4
+                end 
+            elseif (player:spellSlot(0).state == 0 and ComboNum == 0) then
+                if (not HasRBuff() or target.health < DamageQ(target)) then
+                    ComboNum = 5
+                end 
+            elseif (player:spellSlot(1).state == 0 and ComboNum == 0 and GetDistance(target) <= 250) then
+                if (not HasRBuff()) then
+                    ComboNum = 6
+                end 
+            elseif (player:spellSlot(3).state == 0 and ComboNum == 0 and GetDistance(target) <= 300) then
+                ComboNum = 7
             end 
-        elseif (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and ComboNum == 0) then
-            if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageE(target) + DamageR(target)) then
-                ComboNum = 2
+            if (ComboNum == 1) then
+                libss.DelayAction(function() CastQ(target) end, 0.4)
+                libss.DelayAction(function() CastE(target) end, 0.1)
+                libss.DelayAction(function() CastW(target) end, 0.50)
+    
+                if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0 and player:spellSlot(1).state ~= 0) then
+                    ComboNum = 0
+                end 
             end 
-        elseif (player:spellSlot(1).state == 0 and player:spellSlot(2).state == 0 and ComboNum == 0) then
-            if (not HasRBuff() or HasRBuff() and target.health < DamageE(target) + DamageR(target)) then
-                ComboNum = 3
+    
+            if (ComboNum == 2) then
+                libss.DelayAction(function() CastQ(target) end, 0.4)
+                libss.DelayAction(function() CastE(target) end, 0.1)
+    
+                if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0) then
+                    ComboNum = 0
+                end
             end 
-        elseif (player:spellSlot(2).state == 0 and ComboNum == 0) then
-            if (not HasRBuff() or HasRBuff() and target.health < DamageE(target)) then
-                ComboNum = 4
+    
+            if (ComboNum == 3) then
+                libss.DelayAction(function() CastE(target) end, 0.1)
+                libss.DelayAction(function() CastW(target) end, 0.50)
+    
+                if (player:spellSlot(1).state ~= 0 and player:spellSlot(2).state ~= 0) then
+                    ComboNum = 0
+                end 
             end 
-        elseif (player:spellSlot(0).state == 0 and ComboNum == 0) then
-            if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target)) then
-                ComboNum = 5
-            end 
-        elseif (player:spellSlot(1).state == 0 and ComboNum == 0 and GetDistance(target) <= 250) then
-            if (not HasRBuff()) then
-                ComboNum = 6
-            end 
-        elseif (player:spellSlot(3).state == 0 and ComboNum == 0 and GetDistance(target) <= 300) then
-            ComboNum = 7
-        end 
-        if (ComboNum == 1) then
-            libss.DelayAction(function() CastQ(target) end, 0.4)
-            libss.DelayAction(function() CastE(target) end, 0.1)
-            libss.DelayAction(function() CastW(target) end, 0.50)
-
-            if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0 and player:spellSlot(1).state ~= 0) then
+    
+            if (ComboNum == 4) then
+                CastE(target)
                 ComboNum = 0
             end 
-        end 
-
-        if (ComboNum == 2) then
-            libss.DelayAction(function() CastQ(target) end, 0.4)
-            libss.DelayAction(function() CastE(target) end, 0.1)
-
-            if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0) then
-                ComboNum = 0
-            end
-        end 
-
-        if (ComboNum == 3) then
-            libss.DelayAction(function() CastE(target) end, 0.1)
-            libss.DelayAction(function() CastW(target) end, 0.50)
-
-            if (player:spellSlot(1).state ~= 0 and player:spellSlot(2).state ~= 0) then
+    
+            if (ComboNum == 5) then
+                CastQ(target)
                 ComboNum = 0
             end 
+    
+            if (ComboNum == 6) then
+                CastW(target)
+                ComboNum = 0
+            end 
+    
+            if (ComboNum == 7) then
+                player:castSpell("pos", 3, player.pos)
+                ComboNum = 0
+            end     
         end 
-
-        if (ComboNum == 4) then
-            CastE(target)
-            ComboNum = 0
-        end 
-
-        if (ComboNum == 5) then
-            CastQ(target)
-            ComboNum = 0
-        end 
-
-        if (ComboNum == 6) then
-            CastW(target)
-            ComboNum = 0
-        end 
-
-        if (ComboNum == 7) then
-            player:castSpell("pos", 3, player.pos)
-            ComboNum = 0
-        end     
-    end 
+    end  
 end 
 
 local function CheckUpR()
@@ -418,18 +419,22 @@ local function CheckUpR()
 end 
 
 local function KillStela()
-    local target = GetTargetSelector()
-    if not target then return end
-    if DamageQ(target) >= target.health then
-        if GetDistance(target) <= 625 then
-            player:castSpell("obj", 0, target)
+    for i = 0, objManager.enemies_n - 1 do
+		local target = objManager.enemies[i]
+        if not target.isDead and target.isVisible and target.isTargetable then
+            if DamageQ(target) >= target.health then
+                if GetDistance(target) <= 625 then
+                    player:castSpell("obj", 0, target)
+                end 
+            end 
+            if (DamageE(target) + libss.GetTotalAD(player) >= target.health) then
+                if GetDistance(target) <= 700 then
+                    player:castSpell("pos", 2, target.pos)
+                end 
+            end 
         end 
     end 
-    if (DamageE(target) + libss.GetTotalAD(player) >= target.health) then
-        if GetDistance(target) <= 700 then
-            player:castSpell("pos", 2, target.pos)
-        end 
-    end 
+   
 end 
 
 local function LaneClear()
