@@ -73,6 +73,27 @@ local MenuBarata = menu("KZ", "[Nicky]Kha'Zix")
 		MenuBarata.draws:boolean("e", "Draw E Range", true)
 
 
+local function GetPercentHealth(obj)
+    local obj = obj or player
+    return (obj.health / obj.maxHealth) * 100
+end
+
+local function CheckBuffType(obj, bufftype)
+	if obj then
+		for i = 0, obj.buffManager.count - 1 do
+			local buff = obj.buffManager:get(i)
+			if buff and buff.valid and buff.type == bufftype and (buff.stacks > 0 or buff.stacks2 > 0) then
+				return true
+			end 
+		end 
+	end 
+	return false
+end 
+	
+local function IsValidTarget(object)
+	return (object and not object.isDead and object.isVisible and object.isTargetable and not CheckBuffType(object, 17))
+end
+
 local function PhysicalReduction(target, damageSource)
 	local damageSource = damageSource or player
 	local armor = ((target.bonusArmor * damageSource.percentBonusArmorPenetration) + (target.armor - target.bonusArmor)) * damageSource.percentArmorPenetration
@@ -190,10 +211,10 @@ local function KillSteal()
 			elseif player:spellSlot(1).state == 0 and player:spellSlot(0).state == 0 and wDmg(enemy) + qDmg(enemy) > hp and enemy.pos:dist(player.pos) < 500 then
 				CastQ(enemy)
 				CastW(enemy)
-			elseif player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and qDmg(enemy) + eDmg(enemy) + PlayerAD() > hp and MenuBarata.auto.ukse:get() and libss.GetPercentHealth(player) >= MenuBarata.auto.mhp:get() and enemy.pos:dist(player.pos) < 990 then
+			elseif player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and qDmg(enemy) + eDmg(enemy) + PlayerAD() > hp and MenuBarata.auto.ukse:get() and GetPercentHealth(player) >= MenuBarata.auto.mhp:get() and enemy.pos:dist(player.pos) < 990 then
 				CastE(enemy)
 				CastQ(enemy)
-			elseif player:spellSlot(1).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(2).state == 0 and qDmg(enemy) + eDmg(enemy) + wDmg(enemy) + PlayerAD() > hp and MenuBarata.auto.ukse:get() and libss.GetPercentHealth(player) >= MenuBarata.auto.mhp:get() and enemy.pos:dist(player.pos) < 990 then
+			elseif player:spellSlot(1).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(2).state == 0 and qDmg(enemy) + eDmg(enemy) + wDmg(enemy) + PlayerAD() > hp and MenuBarata.auto.ukse:get() and GetPercentHealth(player) >= MenuBarata.auto.mhp:get() and enemy.pos:dist(player.pos) < 990 then
 				CastE(enemy)
 				CastQ(enemy)
 				if enemy.pos:dist(player.pos) <= 700 then
@@ -206,7 +227,7 @@ end
 
 local function Combo()
 	local target = GetTargetSelector()
-	if target  and not target.isDead and target.isVisible and target.isTargetable then
+	if target and IsValidTarget(target) then
 		if MenuBarata.combo.e:get() then
 			if MenuBarata.combo.ed:get() == 1 then
 				if player:spellSlot(2).state == 0 and target.pos:dist(player.pos) <= 700 then
@@ -242,7 +263,7 @@ end
 
 local function Harass()
 	local target = GetTargetSelector()
-	if target and libss.IsValidTarget(target) then
+	if target and IsValidTarget(target) then
 		if MenuBarata.keys.harass:get() then
 			if player.par / player.maxPar * 100 >= MenuBarata.harass.Mana:get() then
 				if MenuBarata.harass.q:get() then
