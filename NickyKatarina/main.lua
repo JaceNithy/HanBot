@@ -335,23 +335,23 @@ local function Combo()
     if target and libss.IsValidTarget(target) then
         if GetDistance(target) <= 700 then
             if (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(1).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or target.health < DamageQ(target) + DamageW(target) + DamageE(target) + DamageR(target)) then
+                if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageW(target) + DamageE(target) + DamageR(target)) then
                     ComboNum = 1
                 end 
             elseif (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or target.health < DamageQ(target) + DamageE(target) + DamageR(target)) then
+                if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageE(target) + DamageR(target)) then
                     ComboNum = 2
                 end 
             elseif (player:spellSlot(1).state == 0 and player:spellSlot(2).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or target.health < DamageE(target) + DamageR(target)) then
+                if (not HasRBuff() or HasRBuff() and target.health < DamageE(target) + DamageR(target)) then
                     ComboNum = 3
                 end 
             elseif (player:spellSlot(2).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or target.health < DamageE(target)) then
+                if (not HasRBuff() or HasRBuff() and target.health < DamageE(target)) then
                     ComboNum = 4
                 end 
             elseif (player:spellSlot(0).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or target.health < DamageQ(target)) then
+                if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target)) then
                     ComboNum = 5
                 end 
             elseif (player:spellSlot(1).state == 0 and ComboNum == 0 and GetDistance(target) <= 250) then
