@@ -1456,7 +1456,7 @@ local function InsecR(pos, obj)
 		player:castSpell("pos", 3, vec3(t.pos.x, t.pos.y, t.pos.z))
 	else
 		DelayAction(InsecR, 0.03)
-	end
+	end	
 end
 
 local function Insec()
