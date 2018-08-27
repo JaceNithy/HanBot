@@ -786,6 +786,17 @@ local function CountObjectsInCircle(pos, radius, pos2)
     return n
 end
 
+
+local function VectorPointProjectionOnLineSegment(v1, v2, v)
+    local cx, cy, ax, ay, bx, by = v.pos.x, (v.pos.z or v.pos.y), v1.x, (v1.z or v1.y), v2.x, (v2.z or v2.y)
+    local rL = ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / ((bx - ax) ^ 2 + (by - ay) ^ 2)
+    local pointLine = { x = ax + rL * (bx - ax), y = ay + rL * (by - ay) }
+    local rS = rL < 0 and 0 or (rL > 1 and 1 or rL)
+    local isOnSegment = rS == rL
+    local pointSegment = isOnSegment and pointLine or { x = ax + rS * (bx - ax), y = ay + rS * (by - ay) }
+    return pointSegment, pointLine, isOnSegment
+end
+
 -- Find Best Position To Cast Spell For Enemy Heroes --
 local function CountEnemyOnLineSegment(StartPos, EndPos, width, objects)
     local n = 0
@@ -857,15 +868,6 @@ local function Normalize(pos, start, range)
 	return {x = castX, z = castZ}
 end
 
-local function VectorPointProjectionOnLineSegment(v1, v2, v)
-    local cx, cy, ax, ay, bx, by = v.x, (v.z or v.y), v1.x, (v1.z or v1.y), v2.x, (v2.z or v2.y)
-    local rL = ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / ((bx - ax) ^ 2 + (by - ay) ^ 2)
-    local pointLine = { x = ax + rL * (bx - ax), y = ay + rL * (by - ay) }
-    local rS = rL < 0 and 0 or (rL > 1 and 1 or rL)
-    local isOnSegment = rS == rL
-    local pointSegment = isOnSegment and pointLine or { x = ax + rS * (bx - ax), y = ay + rS * (by - ay) }
-    return pointSegment, pointLine, isOnSegment
-end
 
 local function A2V ( a, m )
 	m = m or 1
