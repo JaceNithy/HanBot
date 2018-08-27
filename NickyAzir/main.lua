@@ -1,5 +1,7 @@
 local pred = module.internal('pred')
 local TS = module.internal('TS')
+local orb = module.internal("orb")
+local EvadeInternal = module.seek("evade")
 
 -- Delay Functions Call
 local delayedActions, delayedActionsExecuter = {}, nil
@@ -7,7 +9,7 @@ local function DelayAction(func, delay, args) --delay in seconds
   if not delayedActionsExecuter then
     function delayedActionsExecuter()
       for t, funcs in pairs(delayedActions) do
-        if t <= os.clock() then
+        if t <= game.time then
           for i = 1, #funcs do
             local f = funcs[i]
             if f and f.func then
@@ -20,7 +22,7 @@ local function DelayAction(func, delay, args) --delay in seconds
     end
     cb.add(cb.tick, delayedActionsExecuter)
   end
-  local t = os.clock() + (delay or 0)
+  local t = game.time + (delay or 0)
   if delayedActions[t] then
     delayedActions[t][#delayedActions[t] + 1] = {func = func, args = args}
   else
@@ -35,24 +37,17 @@ local function SetInterval(userFunction, timeout, count, params)
       if userFunction(unpack(params or {})) ~= false and (not count or count > 1) then
         DelayAction(
           _intervalFunction,
-          (timeout - (os.clock() - startTime - timeout)),
+          (timeout - (game.time - startTime - timeout)),
           {userFunction, startTime + timeout, timeout, count and (count - 1), params}
         )
       end
     end
   end
-  DelayAction(_intervalFunction, timeout, {userFunction, os.clock(), timeout or 0, count, params})
+  DelayAction(_intervalFunction, timeout, {userFunction, game.time, timeout or 0, count, params})
 end
 
--- Print Function
-local function print(msg, color)
-  local color = color or 42
-  console.set_color(color)
-  print(msg)
-  console.set_color(15)
-end
 
--- Returns percent health of @obj or player
+-- Returns percent health of @obj or player -- P_Soldier_Ring
 local function GetPercentHealth(obj)
   local obj = obj or player
   return (obj.health / obj.maxHealth) * 100
@@ -81,7 +76,7 @@ local function CheckBuff(obj, buffname)
     end
   end
 end
-function CheckBuffType(obj, bufftype)
+local function CheckBuffType(obj, bufftype)
   if obj then
     for i = 0, obj.buffManager.count - 1 do
       local buff = obj.buffManager:get(i)
@@ -240,7 +235,7 @@ enum.buff_types = {
   Blind = 25,
   Counter = 26,
   Shred = 27,
-  Flee = 28,
+  --Flee = 28,
   Knockup = 29,
   Knockback = 30,
   Disarm = 31,
@@ -259,7 +254,7 @@ local hard_cc = {
   [21] = true, -- fear
   [22] = true, -- charm
   [24] = true, -- suppression
-  [28] = true, -- flee
+ -- [28] = true, -- flee
   [29] = true, -- knockup
   [30] = true -- knockback
 }
@@ -275,9 +270,10 @@ units.minions, units.minionCount = {}, 0
 units.enemyMinions, units.enemyMinionCount = {}, 0
 units.allyMinions, units.allyMinionCount = {}, 0
 units.jungleMinions, units.jungleMinionCount = {}, 0
+units.towers, units.towerCount = {}, 0
 units.enemies, units.allies = {}, {}
 
-function can_target_minion(minion)
+local function can_target_minion(minion)
   return minion and not minion.isDead and minion.team ~= TEAM_ALLY and minion.moveSpeed > 0 and minion.health and
     minion.maxHealth > 100 and
     minion.isVisible and
@@ -321,6 +317,10 @@ local function find_place_and_insert(t, c, o, v)
   return c
 end
 
+local function valid_tower(tower)
+    return tower and tower.type == TYPE_TURRET -- 9217
+  end
+
 local function check_add_minion(o)
   if valid_minion(o) then
     if o.team == TEAM_ALLY then
@@ -347,13 +347,21 @@ local function check_add_hero(o)
   end
 end
 
+local function check_add_tower(o)
+    if valid_tower(o) then
+      units.towerCount = find_place_and_insert(units.towers, units.towerCount, o, valid_tower)
+    end
+  end
+
 cb.add(cb.create_minion, check_add_hero)
 cb.add(cb.create_minion, check_add_minion)
+cb.add(cb.create_particle, check_add_tower)
 
 objManager.loop(
   function(obj)
     check_add_hero(obj)
     check_add_minion(obj)
+    check_add_tower(obj)
   end
 )
 
@@ -384,6 +392,20 @@ local function GetEnemyHeroesInRange(range, pos)
   end
   return h
 end
+
+_enemyTowers = nil
+local function GetEnemyTowers()
+  if _enemyTowers then return _enemyTowers end
+  _enemyTowers = {}
+  for i = 1, units.towerCount do
+    local obj = units.towers[i]
+    if valid_tower(obj) and obj.team ~= TEAM_ALLY then
+    _enemyTowers[#_enemyTowers + 1] = obj
+    end
+  end
+  return _enemyTowers
+end
+
 
 -- Returns table and number of objects near @pos
 local function CountObjectsNearPos(pos, radius, objects, validFunc)
@@ -542,7 +564,7 @@ local soldierAA = {
     range = 315
 }
 
-local menu = menu("AzirMenu", "[NickyAzir]Azir")
+local menu = menu("AzirMenu", "[Nicky]Azir")
 
 menu:menu("qsettings", "Q Settings")
     menu.qsettings:boolean("qw", "Use Q If Out Of W Range", true)
@@ -593,9 +615,6 @@ menu:menu("draws", "Draw Settings")
 	menu.draws:dropdown("fill", "", 1, {""})
 	menu.draws:boolean("drawe", "Draw E", true)
 	menu.draws:color("colore", "Color E", 255, 0x66, 0x33, 0x00)
-	menu.draws:header("fill", "Miscellaneous Draws")
-	menu.draws:boolean("drawsoldier", "Draw Soldiers", true)
-	menu.draws:boolean("drawsoldiertime", "Draw Soldier Death Time", true)
     menu.draws:dropdown("fill", "", 1, {""})
     menu.draws:boolean("drawtarget", "Draw Target", true)
     menu.draws:color("colortarget", "Color Target", 255, 0x66, 0x33, 0x00)
@@ -611,6 +630,13 @@ menu:menu("key", "Key Settings")
 	menu.key:keybind("inseckey", "Insec Key", "C", nil)
 
 TS.load_to_menu(menu)
+
+local function GetDistanceSqr(p1, p2)
+    local p2 = p2 or player
+    local dx = p1.x - p2.x
+    local dz = (p1.z or p1.y) - (p2.z or p2.y)
+    return dx * dx + dz * dz
+end
 
 local function GetDistance(one, two)
     if (not one or not two) then
@@ -638,13 +664,13 @@ end
 -- Counting Soldiers --
 local function CreateObj(object)
     if object and object.name then
-        if object.name == "AzirSoldier" then
+        if string.find(object.name, "Base_P_Soldier_Ring") then --Base_W_SoldierIndicator
             if UnderTower(object) then
-                objHolder[object.networkID] = object
-				objTimeHolder[object.networkID] = os.clock() + 6
+                objHolder[object.ptr] = object
+				objTimeHolder[object.ptr] = game.time + 6
 			else
-				objHolder[object.networkID] = object
-				objTimeHolder[object.networkID] = os.clock() + 11
+				objHolder[object.ptr] = object
+				objTimeHolder[object.ptr] = game.time + 11
 			end
         end
     end
@@ -653,7 +679,7 @@ end
 local function CountSoldiers()
     soldiers = 0
     for _, obj in pairs(objHolder) do
-        if objTimeHolder[obj.networkID] and objTimeHolder[obj.networkID] > os.clock() and GetDistance(obj, player) < 2000 then
+        if objTimeHolder[obj.ptr] and objTimeHolder[obj.ptr] > game.time and GetDistance(obj, player) < 2000 then
             soldiers = soldiers + 1
         end
     end
@@ -663,7 +689,7 @@ end
 local function GetSoldier(i)
     soldiers = 0
     for _,obj in pairs(objHolder) do
-        if objTimeHolder[obj.networkID] and objTimeHolder[obj.networkID] > os.clock() then
+        if objTimeHolder[obj.ptr] and objTimeHolder[obj.ptr] > game.time then
             soldiers = soldiers + 1
             if i == soldiers then
                 return obj
@@ -675,7 +701,7 @@ end
 local function GetSoldiers()
     soldiers = {}
     for _,obj in pairs(objHolder) do
-        if objTimeHolder[obj.networkID] and objTimeHolder[obj.networkID] > os.clock() then
+        if objTimeHolder[obj.ptr] and objTimeHolder[obj.ptr] > game.time then
             table.insert(soldiers, obj)
         end
     end
@@ -1091,13 +1117,6 @@ local function Combo()
 						end
 					end
 				end
-		-- Two Champion In Range --
-			--elseif CountObjectsInCircle(myHero, 2000, enemies) >= 2 then
-				--if CountSoldiers() > 0 then
-					--for _,k in pairs(GetSoldiers()) do
-
-					--end
-				--end
 			end
 		end
 	end
@@ -1506,74 +1525,6 @@ local function OnDraw()
 	end
 	if menu.draws.drawe:get() and IsReady(2) then
 		graphics.draw_circle(player.pos, spellE.range, 2, menu.draws.colore:get(), 100)
-	end
-
-    if menu.draws.drawsoldier:get() then
-		local pi = math.pi
-		local pointsSmall = {}
-		local pointsLarge = {}
-		local drawPoints = {}
-		local resolution = 35
-		for i=1,resolution do
-			local PX, PZ = A2V(pi*i/(resolution/3.5), 300)
-			pointsSmall[#pointsSmall+1] = {x = PX, z = PZ}
-			local PX, PZ = A2V(pi*i/(resolution/3.5)+(resolution/70), 325)
-			pointsLarge[#pointsLarge+1] = {x = PX, z = PZ}
-		end
-
-		if CountSoldiers() > 0 then
-			for _,k in pairs(GetSoldiers()) do
-				local X,Y,Z = k.x, k.y, k.z
-				if k.team == TEAM_ALLY and GetDistance(player, k) <= 670 then
-                    graphics.draw_circle_xyz(k.x, k.y, k.z, 325, 1, graphics.argb(255, 102, 255, 179), 100)
-                    graphics.draw_circle_xyz(k.x, k.y, k.z, 300, 1, graphics.argb(255, 102, 255, 179), 100)
-				elseif k.team == TEAM_ALLY and GetDistance(k, player) > 670 then
-                    graphics.draw_circle_xyz(k.x, k.y, k.z, 325, 1, graphics.argb(255, 234, 153, 153), 100)
-                    graphics.draw_circle_xyz(k.x, k.y, k.z, 300, 1, graphics.argb(255, 234, 153, 153), 100)
-				end
-				for i,v in ipairs(pointsSmall) do
-					if i > 1 and i < #pointsSmall then
-						local nextPointL = pointsLarge[i-1]
-						local nextPointS = pointsSmall[i+1]
-						if k.team == TEAM_ALLY and GetDistance(player, k) <= 670 then
-                            graphics.draw_line(vec3(X+v.x, Y, Z+v.z), vec3(X+nextPointL.x, Y, Z+nextPointL.z), 1, graphics.argb(255, 102, 255, 179))
-                            graphics.draw_line(vec3(X+nextPointL.x, Y, Z+nextPointL.z), vec3(X+nextPointS.x, Y, Z+nextPointS.z), 1, graphics.argb(255, 102, 255, 179))
-						elseif k.team == TEAM_ALLY and GetDistance(player, k) >= 670 then
-                            graphics.draw_line(vec3(X+v.x, Y, Z+v.z), vec3(X+nextPointL.x, Y, Z+nextPointL.z), 1, graphics.argb(255, 234, 153, 153))
-                            graphics.draw_line(vec3(X+nextPointL.x, Y, Z+nextPointL.z), vec3(X+nextPointS.x, Y, Z+nextPointS.z), 1, graphics.argb(255, 234, 153, 153))
-						end
-					end
-				end
-			end
-		end
-	end
-
-    if menu.draws.drawsoldiertime:get() then
-		for _, obj in pairs(objHolder) do
-		    if objTimeHolder[obj.networkID] and objTimeHolder[obj.networkID] < math.huge and obj.team == player.team then
-			    if objTimeHolder[obj.networkID] > os.clock() then
-                    local pos = graphics.world_to_screen(vec3(obj.x, obj.y, obj.z))
-			    	if obj.name:find("AzirSoldier") and (objTimeHolder[obj.networkID] - os.clock()) >= 4 then
-                        graphics.draw_text_2D("Death:" ..math.floor(objTimeHolder[obj.networkID] - os.clock()).."s", 20, pos.x - 20, pos.y + 40, graphics.argb(255, 102, 255, 179))
-			    	elseif obj.name:find("AzirSoldier") and (objTimeHolder[obj.networkID] - os.clock()) < 4 then
-                        graphics.draw_text_2D("Death:" ..math.floor(objTimeHolder[obj.networkID] - os.clock()).."s", 20, pos.x - 20, pos.y + 40, graphics.argb(255, 234, 153, 153))
-					end
-				else
-					objHolder[obj.networkID] = nil
-					objTimeHolder[obj.networkID] = nil
-				end
-			end
-	    end
-	end
-
-    if menu.draws.drawtarget:get() then
-        local target = GetTarget()
-
-        if not IsValidTarget(target) then
-            return
-        end
-
-        graphics.draw_circle(target.pos, target.boundingRadius, 2, menu.draws.colortarget:get(), 100)
     end
 end
 
@@ -1587,6 +1538,6 @@ local function OnTick()
     Flee()
 end
 
-cb.add(cb.tick, OnTick)
+orb.combat.register_f_pre_tick(OnTick)
 cb.add(cb.draw, OnDraw)
 cb.add(cb.create_particle, CreateObj)
