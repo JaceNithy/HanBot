@@ -45,6 +45,7 @@ local DevIsTool = menu("KZ", "[Nicky]DevTool")
 	DevIsTool.ss:boolean("Cursor", "Draw Cursor Info", true)
 	DevIsTool.ss:boolean("BuffsMyHero", "Draw My Buffs [Not Work]", false)
     DevIsTool.ss:boolean("BuffsENemys", "Draw Target Buffs [Nor Work]", false)
+    DevIsTool.ss:boolean("DOB", "Draw Objects Info", true)
 
 local function CreateObj(object)
     if object and object.name then
@@ -96,10 +97,12 @@ local function OnDraw()
         graphics.draw_text_2D("SCREEN_POS: " .. tostring(math.floor(pos2d.x)) .." , ".. tostring(math.floor(pos2d.y)), 20,playerPos.x + -600,  playerPos.y - 280,  graphics.argb(255, 255, 255, 255))
     end 
     --
+    if DevIsTool.ss.DOB:get() then
     for k, v in pairs(objHolder) do
       --  if k >= 30 then break end
             local ObjPos = graphics.world_to_screen(v.pos)
             graphics.draw_text_2D("Objects [Player]:" .. tostring(v.name), 20, ObjPos.x - 40,  ObjPos.y + 70, graphics.argb(255, 255, 255, 255))
+        end 
     end 
 end 
 
