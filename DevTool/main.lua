@@ -12,19 +12,6 @@ local function GetBuffByName(obj, buffname)
     end
 end
 
-local function GetBuffCount(obj)
-    local count = 0
-    if obj then
-      for i = 0, obj.buffManager.count - 1 do
-        local buff = obj.buffManager:get(i)
-  
-        if buff and buff.valid and buff.name then
-            count = count + 1
-        end
-      end
-    end
-end
-
 local function GetBuffStack(obj)
     if obj then
       for i = 0, obj.buffManager.count - 1 do
