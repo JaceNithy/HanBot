@@ -6,6 +6,55 @@ local orb = module.internal("orb")
 local EvadeInternal = module.seek("evade")
 local libss = module.load("NickyKatarina", "libss")
 
+units = {}
+units.towers, units.towerCount = {}, 0
+
+local function find_place_and_insert(t, c, o, v)
+    local dead_place = nil
+    for i = 1, c do
+      local tmp = t[i]
+      if not v(tmp) then
+        dead_place = i
+        break
+      end
+    end
+    if dead_place then
+      t[dead_place] = o
+    else
+      c = c + 1
+      t[c] = o
+    end
+    return c
+end
+
+local function valid_tower(tower)
+    return tower and tower.type == TYPE_TURRET -- 9217
+end
+
+local function check_add_tower(o)
+    if valid_tower(o) then
+        units.towerCount = find_place_and_insert(units.towers, units.towerCount, o, valid_tower) 
+    end
+end
+
+cb.add(cb.create_particle, check_add_tower)
+objManager.loop(function(obj)check_add_tower(obj) end)
+
+_enemyTowers = nil
+local function GetEnemyTowers()
+    if _enemyTowers then 
+        return _enemyTowers 
+    end
+    _enemyTowers = {}
+    for i = 1, units.towerCount do
+        local obj = units.towers[i]
+        if valid_tower(obj) and obj.team ~= TEAM_ALLY then
+            _enemyTowers[#_enemyTowers + 1] = obj
+        end 
+    end 
+    return _enemyTowers
+end
+
 local function GetDistanceSqr(p1, p2)
     local p2 = p2 or player
     local dx = p1.x - p2.x
@@ -18,6 +67,32 @@ local function GetDistance(p1, p2)
     return math.sqrt(squaredDistance)
 end
 
+local function CheckDance(obj, buffname)
+    if obj then
+      for i = 0, obj.buffManager.count - 1 do
+        local buff = obj.buffManager:get(i)
+  
+        if buff and buff.valid and buff.name:find(buffname) and (buff.stacks > 0 or buff.stacks2 > 0) then
+          return true
+        end
+      end
+    end
+  end
+
+local function UnderTower(unit)
+    enemyTowers = GetEnemyTowers()
+    for i = 1, #enemyTowers do
+		local tower = enemyTowers[i]
+        if GetDistance(player, tower) < 800 + player.boundingRadius then
+            if GetDistance(unit, tower) <= 800 + player.boundingRadius then 
+                return true
+            else
+                return false
+            end
+        end
+    end
+end
+
 local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing your code
 	local enemies_in_range = {}
 	for i = 0, objManager.enemies_n - 1 do
@@ -28,8 +103,13 @@ local function EnemysInrange(pos, range) -- ty Kornis Thank you for allowing you
 	end
 	return enemies_in_range
 end
+
+local function Floor(number) 
+    return math.floor((number) * 100) * 0.01
+end
+
 local q = { Range = 625, Dagger = { }, DaggerStart = 0, DaggerEnd = 0, CoutD = 0 }
-local w = { Range = 150, DaggerMis = { }, DaggerStartMis = 0, DaggerEndMis = 0 }
+local w = { Range = 375, DaggerMis = { }, DaggerStartMis = 0, DaggerEndMis = 0 }
 local e = { Range = 700 }
 local r = { Range = 550, RCasting = false, TimeR = 0 }
 local Posis = vec3(0,0,0)
@@ -37,9 +117,17 @@ local WPos = vec3(0,0,0)
 local DaggerPosition = vec3(0,0,0)
 local ComboNum = 0
 
+local IgniteFlott = nil
+if player:spellSlot(4).name == "SummonerDot" then
+	IgniteFlott = 4
+elseif player:spellSlot(5).name == "SummonerDot" then
+	IgniteFlott = 5
+end
+
 local MenuKatarina = menu("Nicky [Katarina]", "Katarina:By Nicky")
 --Combo
 MenuKatarina:menu("kat", "Combo [Katarina]")
+MenuKatarina.kat:dropdown("combomode", "Combo Mode: ", 3, {"Auto", "EWQR", "EQWR", "///"})
 MenuKatarina.kat:boolean("EAA", "Only use e if target is outside auto attack range", true)
 MenuKatarina.kat:slider("CanOln", "Level CanCast [Only]", 6, 1, 18, 1)
 MenuKatarina.kat:boolean("CQ", "Use [Q]", true)
@@ -74,11 +162,6 @@ MenuKatarina:menu("katKeys", "Keys [Katarina]")
 MenuKatarina.katKeys:keybind("CK", "Combo [Key]", "Space", nil)
 MenuKatarina.katKeys:keybind("CL", "Lane [Key]", "V", nil)
 
-
-local function IsValidTarget(unit, range)
-    return unit and unit.isVisible and not unit.isDead and (not range or GetDistance(unit) <= range)
-end
-
 local function ST(res, obj, Distancia)
     if Distancia < 1000 then 
         res.obj = obj
@@ -90,27 +173,20 @@ local function GetTargetSelector()
 	return ts.get_result(ST).obj
 end
 
-
 local function ObjDagger(obj)
     if obj and obj.name then 
         if string.find(obj.name, "W_Indicator_Ally") then
             q.Dagger[obj.ptr] = obj 
-            q.DaggerStart = game.time +  1.1 - 0.2
-            q.DaggerEnd = game.time + 5.1
+            q.DaggerStart = game.time + Floor(1.25)
+            q.DaggerEnd = game.time + Floor(5.1)
             q.CoutD = q.CoutD + 1
         end 
     end 
     if obj and obj.name then 
         if string.find(obj.name, "W_Mis") then
             w.DaggerMis[obj.ptr] = obj 
-            w.DaggerStartMis = game.time + 1.1 - 0.2
-            w.DaggerEndMis = game.time + 5.1
-        end 
-    end 
-    if obj and obj.name then 
-        if string.find(obj.name, "R_cas") then
-            RCasting = true
-            TimeR = game.time + 1
+            w.DaggerStartMis = game.time + Floor(1.25)
+            w.DaggerEndMis = game.time + Floor(5.1)
         end 
     end 
 end
@@ -131,12 +207,6 @@ local function ObjDelete(obj)
             w.DaggerEndMis = 0
         end 
     end
-    if obj and obj.name then 
-        if string.find(obj.name, "R_cas") then
-            RCasting = false
-            TimeR = 0
-        end 
-    end 
 end 
 
 local function CountAdaga()
@@ -217,7 +287,7 @@ local function OnDraw()
             for _, Adaga in pairs(q.Dagger) do
                 if Adaga then
                     if player.isVisible and player.isOnScreen and not player.isDead then
-                        if game.time >= q.DaggerStart and game.time <= q.DaggerEnd  then
+                        if q.DaggerStart <= game.time  then
                             graphics.draw_circle(Adaga.pos, 350, 2, graphics.argb(255, 255, 0, 0), 100) 
                         end
                     end 
@@ -290,7 +360,7 @@ local function CastE(target)
     end 
     for _, Adaga in pairs(q.Dagger) do
         if Adaga then
-            if game.time >= q.DaggerStart then
+            if q.DaggerStart <= game.time then
                 local DaggerPos = Adaga.pos + (target.pos - Adaga.pos):norm() * 150
                 local DaggerIsRange = Adaga.pos + (target.pos - Adaga.pos):norm() * 50
                 local DaggerRange = Adaga.pos + (target.pos - Adaga.pos):norm() * -50
@@ -331,85 +401,96 @@ local function CastQ(target)
 end 
 
 local function Combo()
-    local target = GetTargetSelector()
-    if target and libss.IsValidTarget(target) then
-        if GetDistance(target) <= 700 then
-            if (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(1).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageW(target) + DamageE(target) + DamageR(target)) then
-                    ComboNum = 1
+    for i = 0, objManager.enemies_n - 1 do
+		local target = objManager.enemies[i]
+        if not target.isDead and target.isVisible and target.isTargetable and libss.IsValidTarget(target) then
+            if MenuKatarina.kat.combomode:get() == 1 and not HasRBuff() then
+                if GetDistance(target) <= 625 then
+                    if player:spellSlot(0).state == 0 then
+                        CastQ(target)
+                    end
+                end  
+                if player:spellSlot(2).state == 0  and GetDistance(target) <= e.Range and not HasRBuff() then
+                    for _, Adaga in pairs(q.Dagger) do
+                        if Adaga then
+                            if q.DaggerStart <= game.time then
+                                local DaggerPos = Adaga.pos + (target.pos - Adaga.pos):norm() * 200
+                                if GetBestDaggerPoint(Adaga, target) and GetDistance(target, Adaga) <= w.Range then
+                                    player:castSpell("pos", 2, vec3(DaggerPos))
+                                else 
+                                    if GetDistance(target) >= w.Range and not HasRBuff() then
+                                        player:castSpell("pos", 2, target.pos)
+                                    end 
+                                end 
+                            end 
+                        end 
+                    end
                 end 
-            elseif (player:spellSlot(2).state == 0 and player:spellSlot(0).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target) + DamageE(target) + DamageR(target)) then
-                    ComboNum = 2
+                if player:spellSlot(1).state == 0  and GetDistance(target) <= w.Range and not HasRBuff() then
+                    CastW(target)
                 end 
-            elseif (player:spellSlot(1).state == 0 and player:spellSlot(2).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or HasRBuff() and target.health < DamageE(target) + DamageR(target)) then
-                    ComboNum = 3
+                if DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
+                    player:castSpell("pos", 3, target.pos)
+                end        
+            else
+                if player:spellSlot(2).state == 0  and GetDistance(target) <= e.Range and not HasRBuff() then
+                    for _, Adaga in pairs(q.Dagger) do
+                        if Adaga then
+                            if q.DaggerStart <= game.time then
+                                local DaggerPos = Adaga.pos + (target.pos - Adaga.pos):norm() * 200
+                                if GetBestDaggerPoint(Adaga, target) and GetDistance(target, Adaga) <= w.Range then
+                                    player:castSpell("pos", 2, vec3(DaggerPos))
+                                else 
+                                    if GetDistance(target) >= w.Range then
+                                        player:castSpell("pos", 2, target.pos)
+                                    end 
+                                end 
+                            end 
+                        end 
+                    end
                 end 
-            elseif (player:spellSlot(2).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or HasRBuff() and target.health < DamageE(target)) then
-                    ComboNum = 4
-                end 
-            elseif (player:spellSlot(0).state == 0 and ComboNum == 0) then
-                if (not HasRBuff() or HasRBuff() and target.health < DamageQ(target)) then
-                    ComboNum = 5
-                end 
-            elseif (player:spellSlot(1).state == 0 and ComboNum == 0 and GetDistance(target) <= 250) then
-                if (not HasRBuff()) then
-                    ComboNum = 6
-                end 
-            elseif (player:spellSlot(3).state == 0 and ComboNum == 0 and GetDistance(target) <= 300) then
-                ComboNum = 7
-            end 
-            if (ComboNum == 1) then
-                libss.DelayAction(function() CastQ(target) end, 0.4)
-                libss.DelayAction(function() CastE(target) end, 0.1)
-                libss.DelayAction(function() CastW(target) end, 0.50)
-    
-                if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0 and player:spellSlot(1).state ~= 0) then
-                    ComboNum = 0
-                end 
-            end 
-    
-            if (ComboNum == 2) then
-                libss.DelayAction(function() CastQ(target) end, 0.4)
-                libss.DelayAction(function() CastE(target) end, 0.1)
-    
-                if (player:spellSlot(2).state ~= 0 and player:spellSlot(0).state ~= 0) then
-                    ComboNum = 0
+                if player:spellSlot(0).state == 0 and not HasRBuff() then
+                    CastQ(target)
                 end
-            end 
-    
-            if (ComboNum == 3) then
-                libss.DelayAction(function() CastE(target) end, 0.1)
-                libss.DelayAction(function() CastW(target) end, 0.50)
-    
-                if (player:spellSlot(1).state ~= 0 and player:spellSlot(2).state ~= 0) then
-                    ComboNum = 0
+                if player:spellSlot(1).state == 0  and GetDistance(target) <= w.Range and not HasRBuff() then
+                    CastW(target)
+                end
+                if DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
+                    player:castSpell("pos", 3, target.pos)
                 end 
             end 
-    
-            if (ComboNum == 4) then
-                CastE(target)
-                ComboNum = 0
+            if MenuKatarina.kat.combomode:get() == 2 and not HasRBuff() then     
+                if player:spellSlot(2).state == 0  and GetDistance(target) >= w.Range and not HasRBuff() then
+                   CastE(target)
+                end 
+                if player:spellSlot(1).state == 0  and GetDistance(target) >= w.Range and not HasRBuff()  then
+                    CastW(target)
+                end
+                if player:spellSlot(0).state == 0 and GetDistance(target) <= q.Range and not HasRBuff()  then
+                    CastQ(target)
+                end
+                if DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
+                    player:castSpell("pos", 3, target.pos)
+                end 
             end 
-    
-            if (ComboNum == 5) then
-                CastQ(target)
-                ComboNum = 0
+            if MenuKatarina.kat.combomode:get() == 3 and not HasRBuff() then     
+                if GetDistance(target) <= 625 then
+                    if player:spellSlot(0).state == 0 then
+                        CastQ(target)
+                    end
+                end  
+                if player:spellSlot(2).state == 0  and GetDistance(target) <= e.Range and not HasRBuff() then
+                   CastE(target)
+                end 
+                if player:spellSlot(1).state == 0  and GetDistance(target) <= w.Range and not HasRBuff() then
+                    CastW(target)
+                end 
+                if DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
+                    player:castSpell("pos", 3, target.pos)
+                end      
             end 
-    
-            if (ComboNum == 6) then
-                CastW(target)
-                ComboNum = 0
-            end 
-    
-            if (ComboNum == 7) then
-                player:castSpell("pos", 3, player.pos)
-                ComboNum = 0
-            end     
         end 
-    end  
+    end         
 end 
 
 local function CheckUpR()
@@ -451,10 +532,32 @@ local function LaneClear()
     end 
 end 
 
+local function TisIgnite()
+    for i = 0, objManager.enemies_n - 1 do
+		local target = objManager.enemies[i]
+        if not target.isDead and target.isVisible and target.isTargetable and libss.IsValidTarget(target) then
+            if GetDistance(target) <= 625 then
+                if (IgniteFlott and player:spellSlot(IgniteFlott).state) then
+                    if libss.GetIgniteDamage(target) >= target.health then
+                        player:castSpell("obj", IgniteFlott, target)
+                    end
+                end 
+            end 
+        end 
+    end 
+end 
+
 local function OnTick()
+    if CheckDance(player, "katarinarsound") then
+        RCasting = true
+    else 
+        RCasting = false
+    end 
+
     HasRBuff()
     CheckUpR()
     KillStela()
+    TisIgnite()
     if (MenuKatarina.katKeys.CK:get()) then
        Combo()
     end 
