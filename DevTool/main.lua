@@ -1,3 +1,5 @@
+local minionmanager = objManager.minions
+
 local function GetBuffByName(obj, buffname)
     if obj then
       for i = 0, obj.buffManager.count - 1 do
@@ -35,6 +37,22 @@ local function GetBuffStack(obj)
     end
 end
 
+local function GetMyHeroPos()
+    return player.pos
+end
+
+local function GetDistanceSqr(p1, p2)
+    local p2 = p2 or player
+    local dx = p1.x - p2.x
+    local dz = (p1.z or p1.y) - (p2.z or p2.y)
+    return dx * dx + dz * dz
+end
+
+local function GetDistance(p1, p2)
+    local squaredDistance = GetDistanceSqr(p1, p2)
+    return math.sqrt(squaredDistance)
+end
+
 local objHolder = {}
 local timespell = 0
 local stateTime = 0
@@ -55,7 +73,7 @@ local DevIsTool = menu("KZ", "[Nicky]DevTool")
 
 local function CreateObj(object)
     if object and object.name then
-        if string.find(object.name, "Base") then 
+        if string.find(object.name, "") then 
             objHolder[object.ptr] = object
          --   objHolder[object.ptr] = player
         end 
@@ -64,7 +82,7 @@ end
 
 local function DeleteObj(object)
     if object and object.name then
-        if string.find(object.name, "Base") then 
+        if string.find(object.name, "") then 
             objHolder[object.ptr] = nil
          --   objHolder[object.ptr] = player
         end 
@@ -107,12 +125,14 @@ local function OnDraw()
         graphics.draw_text_2D("Cooldown [E]:" .. tostring(Floor(player:spellSlot(2).cooldown)), 20, playerPos.x + 290,  playerPos.y - -140, graphics.argb(255, 255, 255, 255))
         graphics.draw_text_2D("Cooldown [R]:" .. tostring(Floor(player:spellSlot(3).cooldown)), 20, playerPos.x + 290,  playerPos.y - -160, graphics.argb(255, 255, 255, 255))
         --
+        graphics.draw_text_2D("Cooldown [Summoner]:" .. tostring(Floor(player:spellSlot(4).cooldown)), 20, playerPos.x + 290,  playerPos.y - -180, graphics.argb(255, 255, 255, 255))
+        graphics.draw_text_2D("Cooldown [Summoner]:" .. tostring(Floor(player:spellSlot(5).cooldown)), 20, playerPos.x + 290,  playerPos.y - -200, graphics.argb(255, 255, 255, 255))
     end 
-    graphics.draw_text_2D("--", 20, playerPos.x + 290,  playerPos.y - -180, graphics.argb(255, 0, 255, 0))
+    graphics.draw_text_2D("--", 20, playerPos.x + 290,  playerPos.y - -220, graphics.argb(255, 0, 255, 0))
     if DevIsTool.ss.Heroinfo3:get() then    
-        graphics.draw_text_2D("Speed [Q]:" .. tostring(Floor(player:spellSlot(0).static.missileSpeed)), 20, playerPos.x + 290,  playerPos.y - -200, graphics.argb(255, 255, 255, 255))
-        graphics.draw_text_2D("Speed [W]:" .. tostring(Floor(player:spellSlot(1).static.missileSpeed)), 20, playerPos.x + 290,  playerPos.y - -220, graphics.argb(255, 255, 255, 255))
-        graphics.draw_text_2D("Speed [E]:" .. tostring(Floor(player:spellSlot(2).static.missileSpeed)), 20, playerPos.x + 290,  playerPos.y - -240, graphics.argb(255, 255, 255, 255))
+        graphics.draw_text_2D("Speed [Q]:" .. tostring(Floor(player:spellSlot(0).static.missileSpeed)), 20, playerPos.x + 290,  playerPos.y - -240, graphics.argb(255, 255, 255, 255))
+        graphics.draw_text_2D("Speed [W]:" .. tostring(Floor(player:spellSlot(1).static.missileSpeed)), 20, playerPos.x + 290,  playerPos.y - -260, graphics.argb(255, 255, 255, 255))
+        graphics.draw_text_2D("Speed [E]:" .. tostring(Floor(player:spellSlot(2).static.missileSpeed)), 20, playerPos.x + 290,  playerPos.y - -280, graphics.argb(255, 255, 255, 255))
     end 
    
 
@@ -134,13 +154,19 @@ local function OnDraw()
     end 
     --
     if DevIsTool.ss.DOB:get() then
+
     for k, v in pairs(objHolder) do
-      --  if k >= 30 then break end
             local ObjPos = graphics.world_to_screen(v.pos)
-            graphics.draw_text_2D("Objects [Player]:" .. tostring(v.name), 20, ObjPos.x - 200,  ObjPos.y + 100, graphics.argb(255, 255, 255, 255))
-        end 
+            local _type = v.type
+            local name = v.name
+            local isTroy = string.find(string.lower(name), ".troy")
+            local isBuff = string.find(string.lower(name), "buff")
+            if _type ~= 6 and isTroy == nil and isBuff == nil then 
+                graphics.draw_text_2D("Objects [Player]:" .. tostring(v.name), 20, ObjPos.x - 200,  ObjPos.y + 100, graphics.argb(255, 255, 255, 255))
+            end  
+        end
     end 
-end 
+end  
 
 cb.add(cb.draw, OnDraw)
 --cb.add(cb.tick, OnTick)
