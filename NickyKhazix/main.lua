@@ -37,7 +37,7 @@ local MenuBarata = menu("KZ", "[Nicky]Kha'Zix")
 		MenuBarata.combo:header("xd2", "W Settings")
 		MenuBarata.combo:boolean("w", "Use W", true)
 		MenuBarata.combo:header("xd3", "E Settings")
-		MenuBarata.combo:boolean("e", "Use E in Combo", false)
+		MenuBarata.combo:boolean("e", "Use E in Combo", true)
 		MenuBarata.combo:dropdown("ed", "E Mode", 2, {"Mouse Pos", "With Prediction"})
 		MenuBarata.combo:header("xd4", "R Settings")
 		MenuBarata.combo:boolean("r", "Use R", true)
@@ -170,7 +170,7 @@ local function CastW(target)
 	end
 end
 
-local function CastR(target)
+local function CastR()
 	if player:spellSlot(3).state == 0 then
 		player:castSpell("self", 3)
 	end
@@ -249,12 +249,12 @@ local function Combo()
 			if MenuBarata.combo.rm:get() == 2 then
 				if player:spellSlot(1).state == 0 and player:spellSlot(0).state == 0 and player:spellSlot(2).state == 0 and target.health <= ((qDmg(target)*2) + wDmg(target) + eDmg(target)) and target.health > (wDmg(target) + eDmg(target)) then
 	                if target.pos:dist(player.pos) <= 900 then
-	                    if player:spellSlot(2).state == 0 then CastR(target) end
+	                    if player:spellSlot(2).state == 0 then CastR() end
 	                end
 	            end
 	        elseif MenuBarata.combo.rm:get() == 1 then
 	            if target.pos:dist(player.pos) <= 500 then 
-	                if player:spellSlot(2).state == 0 then CastR(target) end
+	                if player:spellSlot(2).state == 0 then CastR() end
 	            end
 	        end
 		end
