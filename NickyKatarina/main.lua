@@ -429,7 +429,7 @@ local function Combo()
                 if player:spellSlot(1).state == 0  and GetDistance(target) <= w.Range and not HasRBuff() then
                     CastW(target)
                 end 
-                if DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
+                if player:spellSlot(3).state == 0  and DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
                     player:castSpell("pos", 3, target.pos)
                 end        
             else
@@ -469,7 +469,7 @@ local function Combo()
                 if player:spellSlot(0).state == 0 and GetDistance(target) <= q.Range and not HasRBuff()  then
                     CastQ(target)
                 end
-                if DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
+                if player:spellSlot(3).state == 0 and DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
                     player:castSpell("pos", 3, target.pos)
                 end 
             end 
@@ -485,7 +485,7 @@ local function Combo()
                 if player:spellSlot(1).state == 0  and GetDistance(target) <= w.Range and not HasRBuff() then
                     CastW(target)
                 end 
-                if DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
+                if player:spellSlot(3).state == 0 and DamageR(target) >= target.health and GetDistance(target) <= w.Range and not HasRBuff() then
                     player:castSpell("pos", 3, target.pos)
                 end      
             end 
