@@ -6,6 +6,7 @@ local orb = module.internal("orb")
 local EvadeInternal = module.seek("evade")
 local libss = module.load("NickyKatarina", "libss")
 
+
 units = {}
 units.towers, units.towerCount = {}, 0
 
@@ -257,6 +258,60 @@ local function DamageQ(target)
 	end
 	return 0
 end 
+
+local function Kat_GetHP(enemy)
+end
+
+--[[local function DrawLineHPBar(damage, text, unit, team)
+    if unit.isDead or not unit.isVisible then 
+        return 
+    end
+    local p = graphics.world_to_screen_xyz(unit.x, unit.y, unit.z)
+    local thedmg = 0
+    local line = 2
+    local linePosA  = { x = 0, y = 0 }
+    local linePosB  = { x = 0, y = 0 }
+    local TextPos   = { x = 0, y = 0 }
+  
+    if damage >= unit.health then
+      thedmg = unit.health - 1
+      text = "KILLABLE!"
+    else
+      thedmg = damage
+      text = "Possible Damage"
+    end
+  
+    thedmg = Floor(thedmg)
+  
+    local StartPos = unit.barPos
+    local Real_X = StartPos.x 
+    local Offs_X = (Real_X + ((unit.health - thedmg) / unit.maxHealth) * (StartPos.x + 3))
+    if Offs_X < Real_X then Offs_X = Real_X end 
+    local mytrans = 350 - Floor(255*((unit.health-thedmg)/unit.maxHealth))
+    if mytrans >= 255 then mytrans= 254 end
+    local my_bluepart = Floor(400*((unit.health-thedmg)/unit.maxHealth))
+    if my_bluepart >= 255 then my_bluepart=254 end
+  
+    if team then
+      linePosA.x = Offs_X - 24
+      linePosA.y = (StartPos.y-(30+(line*15)))    
+      linePosB.x = Offs_X - 24 
+      linePosB.y = (StartPos.y+10)
+      TextPos.x = Offs_X - 20
+      TextPos.y = (StartPos.y-(30+(line*15)))
+    else
+      linePosA.x = Offs_X-125
+      linePosA.y = (StartPos.y-(30+(line*15)))    
+      linePosB.x = Offs_X-125
+      linePosB.y = (StartPos.y-15)
+  
+      TextPos.x = Offs_X-122
+      TextPos.y = (StartPos.y-(30+(line*15)))
+    end
+  
+    graphics.draw_line_2D(linePosA.x, linePosA.y, linePosB.x, linePosB.y , 2, graphics.argb(mytrans, 255, my_bluepart, 0))
+    graphics.draw_text_2D(tostring(thedmg).." "..tostring(text), 15, TextPos.x, TextPos.y , graphics.argb(mytrans, 255, my_bluepart, 0))
+end]]
 
 local function HasRBuff()
     if RCasting == true then
@@ -557,11 +612,11 @@ local function OnTick()
     KillStela()
     TisIgnite()
     if (MenuKatarina.katKeys.CK:get()) then
-        if MenuKatarina.kat.combomode:get() == 1 then
+        if MenuKatarina.kat.combomode:get() == 1 and not HasRBuff() then
             Combo1()
-        elseif MenuKatarina.kat.combomode:get() == 2 then
+        elseif MenuKatarina.kat.combomode:get() == 2  and not HasRBuff() then
             Combo2()
-        elseif MenuKatarina.kat.combomode:get() == 3 then
+        elseif MenuKatarina.kat.combomode:get() == 3  and not HasRBuff() then
             Combo3()
         end 
     end 
