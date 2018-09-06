@@ -339,7 +339,7 @@ local function isHuman()
 end
 
 local function isHunted(unit)
-	return CheckBuff(unit, "nidaleepassivehunted")
+	return CheckBuff(unit, "NidaleePassiveHunted")
 end
 
 function avadaNid:Cooldowns()
@@ -789,8 +789,9 @@ function avadaNid:OnTick()
 		self:jungling()
 	end
 	self:KS()
-	self:healing()
-end
+  self:healing()
+ 
+end -- NidaleePassiveHunted
 
 --Execute the Class
 if player.charName == "Nidalee" then
