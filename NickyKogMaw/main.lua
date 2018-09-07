@@ -504,6 +504,15 @@ local function GetShop()
   return nil
 end
 
+local function is_ready(sp) 
+  return player:spellSlot(sp).state == 0
+end 
+
+local on_end_func = nil
+local on_end_time = 0
+local f_spell_map = {}
+
+
 
 local menu = menu("Kog'Maw", "[Nicky]Kog'Maw")
 
@@ -595,12 +604,6 @@ menu:menu("draws", "Drawings")
   menu.draws:boolean("r_range", "Draw R Range", true)
   menu.draws:color("r", "R Drawing Color", 255, 255, 255, 255)
 
-  local core = {
-    on_end_func = nil,
-    on_end_time = 0,
-    f_spell_map = {},
-  }
-
   local q = {
     slot = player:spellSlot(0),
     last = 0,
@@ -678,27 +681,24 @@ menu:menu("draws", "Drawings")
     },
   }
 
-local function is_readyq() 
-  return q.slot.state == 0
-end
-  
-local function get_damage(target)
+
+local qget_damage = function(target)
     local damage = (30 + (50 * q.slot.level)) + (GetTotalAP() * 0.5)
     return CalculateMagicDamage(target, damage)
 end
   
-local function invoke_actionq() 
+local qinvoke_action = function()
     player:castSpell("pos", 0, vec3(q.result.seg.endPos.x, q.result.obj.y, q.result.seg.endPos.y))
     orb.core.set_server_pause()
 end
   
-local function invoke_killstealq() 
+local qinvoke_killsteal = function()
     local target = ts.get_result(function(res, obj, dist)
       if dist > GetAARange(obj) and dist < 1500 then
-        if get_damage(obj) > GetShieldedHealth("AP", obj) then
-          local seg = gpred.linear.get_predictionq(q.predinput, obj)
+        if qget_damage(obj) > GetShieldedHealth("AP", obj) then
+          local seg = gpred.linear.get_prediction(q.predinput, obj)
           if seg and seg.startPos:distSqr(seg.endPos) <= 1380625 then
-            local col = gpred.collision.get_predictionq(q.predinput, seg, obj)
+            local col = gpred.collision.get_prediction(q.predinput, seg, obj)
             if not col then
               res.obj = obj
               res.seg = seg
@@ -715,7 +715,7 @@ local function invoke_killstealq()
     end
   end
   
- local function trace_filterq() 
+local qtrace_filter = function()
     if q.result.seg.startPos:distSqr(q.result.seg.endPos) > 1380625 then
       return false
     end
@@ -736,7 +736,7 @@ local function invoke_killstealq()
     end
   end
   
-local function get_predictionq() 
+local qget_prediction = function()
     if q.last == game.time then
       return q.result.seg
     end
@@ -766,526 +766,517 @@ local function get_predictionq()
         end
       end
     end)
-    if q.result.seg and trace_filterq() then
+    if q.result.seg and qtrace_filter() then
       return q.result
     end
-end
-
-local function is_readyw()
-  return w.slot.state == 0
-end
-
-local function invoke_actionw()
-  player:castSpell("self", 1)
-  orb.core.set_server_pause()
-end
-
-local function invoke__lane_clearw()
-  local extended_range = w.range[w.slot.level] + 65
-  local count = 0
-  local minions = objManager.minions
-  for i = 0, minions.size[TEAM_ENEMY] - 1 do
-    local minion = minions[TEAM_ENEMY][i]
-    if minion and not minion.isDead and minion.isVisible then
-      local dist_to_minion = player.path.serverPos:distSqr(minion.path.serverPos)
-      if dist_to_minion <= (extended_range * extended_range) then
-        count = count + 1
-      end
-    end
-    if count == menu.clear.w.min_minions:get() then
-      player:castSpell("self", 1)
-      orb.core.set_server_pause()
-      break
-    end
   end
-end
 
-local function get_predictionw()
-  if w.last == game.time then
-    return w.result
-  end
-  w.last = game.time
-  w.result = nil
+local einvoke_action = function()
+    player:castSpell("pos", 2, vec3(e.result.seg.endPos.x, e.result.obj.y, e.result.seg.endPos.y))
+    orb.core.set_server_pause()
+end
   
-  local target = ts.get_result(function(res, obj, dist)
-    if dist > 1500 then
-      return
-    end
-    w.predinput.radius = w.range[w.slot.level]
-    if gpred.present.get_predictionw(w.predinput, obj) then
-      res.obj = obj
-      return true
-    end
-  end).obj
-  if target then
-    w.result = target
-    return w.result
-  end
-  
-  return w.result
-end
-
-local function is_readye()
-  return e.slot.state == 0
-end
-
-local function invoke_actione()
-  player:castSpell("pos", 2, vec3(e.result.seg.endPos.x, e.result.obj.y, e.result.seg.endPos.y))
-  orb.core.set_server_pause()
-end
-
-local function invoke__lane_cleare()
-  local valid = {}
-  local minions = objManager.minions
-  for i = 0, minions.size[TEAM_ENEMY] - 1 do
-    local minion = minions[TEAM_ENEMY][i]
-    if minion and not minion.isDead and minion.isVisible then
-      local dist = player.path.serverPos:distSqr(minion.path.serverPos)
-      if dist <= 1638400 then
-        valid[#valid + 1] = minion
-      end
-    end
-  end
-  local max_count, cast_pos = 0, nil
-  for i = 1, #valid do
-    local minion_a = valid[i]
-    local current_pos = player.path.serverPos + ((minion_a.path.serverPos - player.path.serverPos):norm() * (minion_a.path.serverPos:dist(player.path.serverPos) + 1300))
-    local hit_count = 1
-    for j = 1, #valid do
-      if j ~= i then
-        local minion_b = valid[j]
-        local point = mathf.closest_vec_line(minion_b.path.serverPos, player.path.serverPos, current_pos)
-        if point and point:dist(minion_b.path.serverPos) < (89 + minion_b.boundingRadius) then
-          hit_count = hit_count + 1
+local einvoke__lane_clear = function()
+    local valid = {}
+    local minions = objManager.minions
+    for i = 0, minions.size[TEAM_ENEMY] - 1 do
+      local minion = minions[TEAM_ENEMY][i]
+      if minion and not minion.isDead and minion.isVisible then
+        local dist = player.path.serverPos:distSqr(minion.path.serverPos)
+        if dist <= 1638400 then
+          valid[#valid + 1] = minion
         end
       end
     end
-    if not cast_pos or hit_count > max_count then
-      cast_pos, max_count = current_pos, hit_count
-    end
-    if cast_pos and max_count > menu.clear.e.min_minions:get() then
-      player:castSpell("pos", 2, cast_pos)
-      orb.core.set_server_pause()
-      break
-    end
-  end
-end
-
-local function trace_filtere()
-  if e.result.seg.startPos:distSqr(e.result.obj.path.serverPos2D) > 1638400 then
-		return false
-	end
-  if gpred.trace.linear.hardlock(e.predinput, e.result.seg, e.result.obj) then
-	  return false
-	end
-  if gpred.trace.linear.hardlockmove(e.predinput, e.result.seg, e.result.obj) then
-    return true
-  end
-  if e.result.seg.startPos:distSqr(e.result.seg.endPos) < (420 * 420) then
-    return true
-  end
-  if gpred.trace.newpath(e.result.obj, 0.033, 0.500) then
-    return true
-  end
-end
-
-local function get_predictione()
-  if e.last == game.time then
-    return e.result.seg
-  end
-  e.last = game.time
-  e.result.obj = nil
-  e.result.seg = nil
-  
-  e.result = ts.get_result(function(res, obj, dist)
-    if dist > 1500 then
-      return
-    end
-    if dist <= GetAARange(obj) then
-      local aa_damage = CalculateAADamage(obj)
-      if (aa_damage * 2) >= GetShieldedHealth("AD", obj) then
-        return
+    local max_count, cast_pos = 0, nil
+    for i = 1, #valid do
+      local minion_a = valid[i]
+      local current_pos = player.path.serverPos + ((minion_a.path.serverPos - player.path.serverPos):norm() * (minion_a.path.serverPos:dist(player.path.serverPos) + 1300))
+      local hit_count = 1
+      for j = 1, #valid do
+        if j ~= i then
+          local minion_b = valid[j]
+          local point = mathf.closest_vec_line(minion_b.path.serverPos, player.path.serverPos, current_pos)
+          if point and point:dist(minion_b.path.serverPos) < (89 + minion_b.boundingRadius) then
+            hit_count = hit_count + 1
+          end
+        end
+      end
+      if not cast_pos or hit_count > max_count then
+        cast_pos, max_count = current_pos, hit_count
+      end
+      if cast_pos and max_count > menu.clear.e.min_minions:get() then
+        player:castSpell("pos", 2, cast_pos)
+        orb.core.set_server_pause()
+        break
       end
     end
-    local seg = gpred.linear.get_predictione(e.predinput, obj)
-    if seg and seg.startPos:distSqr(seg.endPos) < 1638400 then
-      local col = gpred.collision.get_predictione(e.predinput, seg, obj)
-      if not col then
+  end
+  
+local etrace_filter = function()
+    if e.result.seg.startPos:distSqr(e.result.obj.path.serverPos2D) > 1638400 then
+      return false
+    end
+    if gpred.trace.linear.hardlock(e.predinput, e.result.seg, e.result.obj) then
+      return false
+    end
+    if gpred.trace.linear.hardlockmove(e.predinput, e.result.seg, e.result.obj) then
+      return true
+    end
+    if e.result.seg.startPos:distSqr(e.result.seg.endPos) < (420 * 420) then
+      return true
+    end
+    if gpred.trace.newpath(e.result.obj, 0.033, 0.500) then
+      return true
+    end
+  end
+  
+local eget_prediction = function()
+    if e.last == game.time then
+      return e.result.seg
+    end
+    e.last = game.time
+    e.result.obj = nil
+    e.result.seg = nil
+    
+    e.result = ts.get_result(function(res, obj, dist)
+      if dist > 1500 then
+        return
+      end
+      if dist <= GetAARange(obj) then
+        local aa_damage = CalculateAADamage(obj)
+        if (aa_damage * 2) >= GetShieldedHealth("AD", obj) then
+          return
+        end
+      end
+      local seg = gpred.linear.get_prediction(e.predinput, obj)
+      if seg and seg.startPos:distSqr(seg.endPos) < 1638400 then
+        local col = gpred.collision.get_prediction(e.predinput, seg, obj)
+        if not col then
+          res.obj = obj
+          res.seg = seg
+          return true
+        end
+      end
+    end)
+    if e.result.seg and etrace_filter() then
+      return e.result
+    end
+  end 
+  
+local winvoke_action = function()
+    player:castSpell("self", 1)
+    orb.core.set_server_pause()
+end
+  
+ local winvoke__lane_clear = function()
+    local extended_range = w.range[w.slot.level] + 65
+    local count = 0
+    local minions = objManager.minions
+    for i = 0, minions.size[TEAM_ENEMY] - 1 do
+      local minion = minions[TEAM_ENEMY][i]
+      if minion and not minion.isDead and minion.isVisible then
+        local dist_to_minion = player.path.serverPos:distSqr(minion.path.serverPos)
+        if dist_to_minion <= (extended_range * extended_range) then
+          count = count + 1
+        end
+      end
+      if count == menu.clear.w.min_minions:get() then
+        player:castSpell("self", 1)
+        orb.core.set_server_pause()
+        break
+      end
+    end
+  end
+  
+ local  wget_prediction = function()
+    if w.last == game.time then
+      return w.result
+    end
+    w.last = game.time
+    w.result = nil
+    
+    local target = ts.get_result(function(res, obj, dist)
+      if dist > 1500 then
+        return
+      end
+      w.predinput.radius = w.range[w.slot.level]
+      if gpred.present.get_prediction(w.predinput, obj) then
         res.obj = obj
-        res.seg = seg
         return true
       end
+    end).obj
+    if target then
+      w.result = target
+      return w.result
     end
-  end)
-  if e.result.seg and trace_filtere() then
-    return e.result
-  end
-end
-
-local function is_readyr()
-  return r.slot.state == 0
-end
-
-local function get_action_state()
-  if is_readyr() then
-    return get_prediction()
-  end
-end
-
-local function invoke_actionr()
-  player:castSpell("pos", 3, vec3(r.result.seg.endPos.x, r.result.obj.y, r.result.seg.endPos.y))
-  --orb.core.set_server_pause()
-end
-
-local function get_damager(target)
-  local damage = (60 + (40 * r.slot.level)) + (GetBonusAD() * 0.65) + (GetTotalAP() * 0.25)
-  local target_health_scaling = (1 - (target.health / target.maxHealth)) * 0.833
-  target_health_scaling = (target_health_scaling * 100) > 50 and 0.5 or target_health_scaling
-  return (damage + (target_health_scaling * damage)) * MagicReduction(target)
-end
-
-local function invoke_killstealr()
-  local target = ts.get_result(function(res, obj, dist)
-    if dist > 2500 then
-      return
-    end
-    if dist <= r.range[r.slot.level] and dist > GetAARange(obj) then
-      if get_damage(obj) > GetShieldedHealth("AP", obj) then
-        res.obj = obj
-        return true
-      end
-    end
-  end, ts.filter_set[8]).obj
-  if target then
-    local seg = gpred.circular.get_predictionr(r.predinput, target)
-    local range = r.range[r.slot.level] * r.range[r.slot.level]
-    if seg and seg.startPos:distSqr(seg.endPos) <= range then
-      player:castSpell("pos", 3, vec3(seg.endPos.x, target.y, seg.endPos.y))
-      --orb.core.set_server_pause()
-      return true
-    end
-  end
-end
-
-local function invoke__on_dash()
-  local target = ts.get_result(function(res, obj, dist)
-    if dist > 2500 or GetPercentHealth(obj) > 40 then
-      return
-    end
-    if dist <= (r.range[r.slot.level] + obj.boundingRadius) and obj.path.isActive and obj.path.isDashing then
-      res.obj = obj
-      return true
-    end
-  end).obj
-  if target then
-    local pred_pos = gpred.core.lerp(target.path, network.latency + r.predinput.delay, target.path.dashSpeed)
-    if pred_pos and pred_pos:dist(player.path.serverPos2D) > GetAARange() and pred_pos:dist(player.path.serverPos2D) <= 1200 then
-      player:castSpell("pos", 3, vec3(pred_pos.x, target.y, pred_pos.y))
-      --orb.core.set_server_pause()
-      return true
-    end
-  end
-end
-
-local function trace_filterr()
-  if menu.combo.r.cced:get() then
-    if gpred.trace.circular.hardlock(r.predinput, r.result.seg, r.result.obj) then
-      return true
-    end
-    if gpred.trace.circular.hardlockmove(r.predinput, r.result.seg, r.result.obj) then
-      return true
-    end
-  end
-  if gpred.trace.newpath(r.result.obj, 0.033, 0.500) then
-    return true
-  end
-end
-
-local function get_predictionr()
-  if r.last == game.time then
-    return r.result.seg
-  end
-  r.last = game.time
-  r.result.obj = nil
-  r.result.seg = nil
+    
+    return w.result
+  end 
   
-  r.result = ts.get_result(function(res, obj, dist)
-    if dist > 2500 then
-      return
+  
+local rget_action_state = function()
+    if is_ready(3) then
+      return rget_prediction()
     end
-    if dist <= GetAARange(obj) then
-      if (orb.combat.is_active() and not menu.combo.r.in_aa:get()) or (orb.menu.hybrid:get() and not menu.harass.r.in_aa:get()) then
+  end
+  
+local rinvoke_action = function()
+    player:castSpell("pos", 3, vec3(r.result.seg.endPos.x, r.result.obj.y, r.result.seg.endPos.y))
+    --orb.core.set_server_pause()
+  end
+  
+local rget_damage = function(target)
+    local damage = (60 + (40 * r.slot.level)) + (GetBonusAD() * 0.65) + (GetTotalAP() * 0.25)
+    local target_health_scaling = (1 - (target.health / target.maxHealth)) * 0.833
+    target_health_scaling = (target_health_scaling * 100) > 50 and 0.5 or target_health_scaling
+    return (damage + (target_health_scaling * damage)) * MagicReduction(target)
+  end
+  
+local rinvoke_killsteal = function()
+    local target = ts.get_result(function(res, obj, dist)
+      if dist > 2500 then
         return
       end
-      local aa_damage = CalculateAADamage(obj)
-      if (aa_damage * 3) > GetShieldedHealth("AD", obj) then
-        return
+      if dist <= r.range[r.slot.level] and dist > GetAARange(obj) then
+        if rget_damage(obj) > GetShieldedHealth("AP", obj) then
+          res.obj = obj
+          return true
+        end
       end
-    end
-    if (orb.combat.is_active() and GetPercentHealth(obj) < menu.combo.r.at_hp:get()) or (orb.menu.hybrid:get() and GetPercentHealth(obj) < menu.harass.r.at_hp:get()) then
-      local seg = gpred.circular.get_predictionr(r.predinput, obj)
+    end, ts.filter_set[8]).obj
+    if target then
+      local seg = gpred.circular.get_prediction(r.predinput, target)
       local range = r.range[r.slot.level] * r.range[r.slot.level]
       if seg and seg.startPos:distSqr(seg.endPos) <= range then
-        res.obj = obj
-        res.seg = seg
+        player:castSpell("pos", 3, vec3(seg.endPos.x, target.y, seg.endPos.y))
+        --orb.core.set_server_pause()
         return true
       end
     end
-  end)
-  if r.result.seg and trace_filterr() then
-    return r.result
   end
+  
+local rinvoke__on_dash = function()
+    local target = ts.get_result(function(res, obj, dist)
+      if dist > 2500 or GetPercentHealth(obj) > 40 then
+        return
+      end
+      if dist <= (r.range[r.slot.level] + obj.boundingRadius) and obj.path.isActive and obj.path.isDashing then
+        res.obj = obj
+        return true
+      end
+    end).obj
+    if target then
+      local pred_pos = gpred.core.lerp(target.path, network.latency + r.predinput.delay, target.path.dashSpeed)
+      if pred_pos and pred_pos:dist(player.path.serverPos2D) > GetAARange() and pred_pos:dist(player.path.serverPos2D) <= 1200 then
+        player:castSpell("pos", 3, vec3(pred_pos.x, target.y, pred_pos.y))
+        --orb.core.set_server_pause()
+        return true
+      end
+    end
+  end
+  
+local rtrace_filter = function()
+    if menu.combo.r.cced:get() then
+      if gpred.trace.circular.hardlock(r.predinput, r.result.seg, r.result.obj) then
+        return true
+      end
+      if gpred.trace.circular.hardlockmove(r.predinput, r.result.seg, r.result.obj) then
+        return true
+      end
+    end
+    if gpred.trace.newpath(r.result.obj, 0.033, 0.500) then
+      return true
+    end
+  end
+  
+local rget_prediction = function()
+    if r.last == game.time then
+      return r.result.seg
+    end
+    r.last = game.time
+    r.result.obj = nil
+    r.result.seg = nil
+    
+    r.result = ts.get_result(function(res, obj, dist)
+      if dist > 2500 then
+        return
+      end
+      if dist <= GetAARange(obj) then
+        if (orb.combat.is_active() and not menu.combo.r.in_aa:get()) or (orb.menu.hybrid:get() and not menu.harass.r.in_aa:get()) then
+          return
+        end
+        local aa_damage = CalculateAADamage(obj)
+        if (aa_damage * 3) > GetShieldedHealth("AD", obj) then
+          return
+        end
+      end
+      if (orb.combat.is_active() and GetPercentHealth(obj) < menu.combo.r.at_hp:get()) or (orb.menu.hybrid:get() and GetPercentHealth(obj) < menu.harass.r.at_hp:get()) then
+        local seg = gpred.circular.get_prediction(r.predinput, obj)
+        local range = r.range[r.slot.level] * r.range[r.slot.level]
+        if seg and seg.startPos:distSqr(seg.endPos) <= range then
+          res.obj = obj
+          res.seg = seg
+          return true
+        end
+      end
+    end)
+    if r.result.seg and rtrace_filter() then
+      return r.result
+    end
+  end
+  
+local on_update_buff = function()
+  for i = 0, player.buffManager.count - 1 do
+		local buff = player.buffManager:get(i)
+    if buff and buff.valid and buff.name == "kogmawlivingartillerycost" then
+      r.stacks = math.min(10, buff.stacks + 1)
+    end 
+      
+    end
 end
+  
+local on_remove_buff = function()
+  for i = 0, player.buffManager.count - 1 do
+		local buff = player.buffManager:get(i)
+    if buff and buff.valid and buff.name == "kogmawlivingartillerycost" then
+      r.stacks = 0
+    end 
+    end
+end
+  
+local on_end_q = function()
+    on_end_func = nil
+    orb.core.set_pause(0)
+  end
+  
+ local on_cast_q = function(spell)
+    if os.clock() + spell.windUpTime > on_end_time then
+      on_end_func = on_end_q
+      on_end_time = os.clock() + spell.windUpTime
+      orb.core.set_pause(0)
+    end
+  end
+  
+local  on_end_e = function()
+    on_end_func = nil
+    orb.core.set_pause(0)
+  end
+  
+local  on_cast_e = function(spell)
+    if os.clock() + spell.windUpTime > on_end_time then
+      on_end_func = on_end_e
+      on_end_time = os.clock() + spell.windUpTime
+      orb.core.set_pause(0)
+    end
+  end
+  
+ local on_end_r = function()
+    on_end_func = nil
+    orb.core.set_pause(0)
+  end
+  
+local on_cast_r = function(spell)
+    if os.clock() + spell.windUpTime > on_end_time then
+      on_end_func = on_end_r
+      on_end_time = os.clock() + spell.windUpTime
+      orb.core.set_pause(0)
+    end
+  end
+  
+local get_passive_target = function(res, obj, dist)
+    if dist > (menu.auto.p.dist:get() + 500) then
+      return
+    end
+    if (dist < menu.auto.p.dist:get() and (100 + (25 * player.levelRef)) > obj.health) then
+      res.obj = obj
+      return true
+    else
+      if dist < menu.auto.p.dist:get() then
+        res.obj = obj
+        return true
+      end
+    end
+  end
 
-local function on_after_attack()
+local get_action = function()
+    if on_end_func and os.clock() + network.latency > on_end_time then
+      on_end_func()
+    end
+    if menu.auto.p.use:get() and CheckBuff(player, "KogMawIcathianSurprise") then
+      local target = ts.get_result(get_passive_target, ts.filter_set[8], true, true)
+      if target.obj then
+        local pos = target.obj.path.serverPos
+        local dist = player.path.serverPos:dist(pos)
+        if dist < (menu.auto.p.dist:get() - 50) then
+          orb.core.set_pause_move(5)
+          player:move(pos)
+        end
+      end
+    end
+    if menu.auto.q.kill:get() and is_ready(0) then
+      if qinvoke_killsteal() then
+        return
+      end
+    end
+    if menu.auto.r.kill:get() and is_ready(3) then
+      if rinvoke_killsteal() then
+        return
+      end
+    end
+    if menu.auto.r.dash:get() and is_ready(3) then
+      if rinvoke__on_dash() then
+        return
+      end
+    end
+    if menu.semi_r:get() and is_ready(3) then
+      local target = ts.get_result(function(res, obj, dist)
+        if dist > 2500 then
+          return
+        end
+        local seg = gpred.circular.get_prediction(r.predinput, obj)
+        local range = r.range[r.slot.level] * r.range[r.slot.level]
+        if seg and seg.startPos:distSqr(seg.endPos) <= range then
+          res.obj = obj
+          res.seg = seg
+          return true
+        end
+      end)
+      if target.seg and target.obj then
+        player:castSpell("pos", 3, vec3(target.seg.endPos.x, target.obj.y, target.seg.endPos.y))
+        orb.core.set_server_pause()
+      end
+    end
+    if orb.combat.is_active() then
+      if menu.combo.items.botrk:get() then
+        local target = ts.get_result(function(res, obj, dist)
+          if dist > 1000 or GetPercentHealth(target) > menu.combo.items.botrk_at_hp:get() then
+            return
+          end
+          if dist <= GetAARange(obj) then
+            local aa_damage = CalculateAADamage(obj)
+            if (aa_damage * 2) > GetShieldedHealth("AD", obj) then
+              return
+            end
+          end
+          if dist < 550 then
+            res.obj = obj
+            return true
+          end
+        end).obj
+        if target then
+          for i = 6, 11 do
+            local slot = player:spellSlot(i)
+            if slot.isNotEmpty and (slot.name == 'BilgewaterCutlass' or slot.name == 'ItemSwordOfFeastAndFamine') and slot.state == 0 then
+              player:castSpell("obj", i, target)
+              orb.core.set_server_pause()
+              break
+            end
+          end
+        end
+      end
+      if menu.combo.e.use:get() == 2 then
+        if is_ready(2) and GetPercentPar() >= menu.combo.e.mana_mngr:get() and eget_prediction() then
+          einvoke_action()
+          return
+        end
+      end
+      if menu.combo.q.q:get() then
+        if is_ready(0) and GetPercentPar() >= menu.combo.q.mana_mngr:get() and qget_prediction() then
+          qinvoke_action()
+          return
+        end
+      end
+      if menu.combo.w.w:get() and orb.core.can_attack() then
+        if is_ready(1) and GetPercentPar() >= menu.combo.w.mana_mngr:get() and wget_prediction() then
+          winvoke_action()
+          return
+        end
+      end
+      if menu.combo.r.r:get() and not orb.core.is_attack_paused() then
+        if is_ready(3) and r.stacks <= menu.combo.r.stacks:get() and rget_prediction() then
+          rinvoke_action()
+          return
+        end
+      end
+    end
+    if orb.menu.hybrid:get() then
+      if menu.harass.e.use:get() == 2 then
+        if is_ready(2) and GetPercentPar() >= menu.harass.e.mana_mngr:get() and eget_prediction() then
+          einvoke_action()
+          return
+        end
+      end
+      if menu.harass.q.q:get() then
+        if is_ready(0) and GetPercentPar() >= menu.harass.q.mana_mngr:get() and qget_prediction() then
+          qinvoke_action()
+          return
+        end
+      end
+      if menu.harass.w.w:get() and orb.core.can_attack() then
+        if is_ready(1) and GetPercentPar() >= menu.harass.w.mana_mngr:get() and wget_prediction() then
+          winvoke_action()
+          return
+        end
+      end
+      if menu.harass.r.r:get() and not orb.core.is_attack_paused() then
+        if is_ready(3) and r.stacks <= menu.harass.r.stacks:get() and rget_prediction()then
+          rinvoke_action()
+          return
+        end
+      end
+    end
+    if orb.menu.lane_clear:get() then
+      if menu.clear.e.e:get() then
+        if is_ready(2) and GetPercentPar() >= menu.clear.w.mana_mngr:get() then
+          einvoke__lane_clear()
+          return
+        end
+      end
+      if menu.clear.w.w:get() then
+        if is_ready(1) and GetPercentPar() >= menu.clear.w.mana_mngr:get() then
+          winvoke__lane_clear()
+          return
+        end
+      end
+    end
+  end
+
+ local function on_recv_spell(spell)
+  if f_spell_map[spell.name] then
+    f_spell_map[spell.name](spell)
+  end
+ end 
+
+ local function on_after_attack()
   if (orb.combat.is_active() and menu.combo.e.use:get() == 1) or (orb.menu.hybrid:get() and menu.harass.e.use:get() == 1) then
-    if is_readye() and get_predictione() and (e.result.obj and e.result.seg) then
+    if is_ready(2) and eget_prediction() and (e.result.obj and e.result.seg) then
       local dist = player.path.serverPos:dist(e.result.obj.path.serverPos)
       if dist > GetAARange() then
-        invoke_actione()
+        einvoke_action()
         orb.combat.set_invoke_after_attack(false)
         return
       end
     end
   end
 end
- 
 
-local function on_end_q()
-  core.on_end_func = nil
-  orb.core.set_pause(0)
-end
-
-core.on_cast_q = function(spell)
-  if os.clock() + spell.windUpTime > core.on_end_time then
-    core.on_end_func = core.on_end_q
-    core.on_end_time = os.clock() + spell.windUpTime
-    orb.core.set_pause(math.huge)
-  end
-end
-
-local function on_end_e()
-  core.on_end_func = nil
-  orb.core.set_pause(0)
-end
-
-core.on_cast_e = function(spell)
-  if os.clock() + spell.windUpTime > core.on_end_time then
-    core.on_end_func = core.on_end_e
-    core.on_end_time = os.clock() + spell.windUpTime
-    orb.core.set_pause(math.huge)
-  end
-end
-
-local function on_end_r()
-  core.on_end_func = nil
-  orb.core.set_pause(0)
-end
-
-core.on_cast_r = function(spell)
-  if os.clock() + spell.windUpTime > core.on_end_time then
-    core.on_end_func = core.on_end_r
-    core.on_end_time = os.clock() + spell.windUpTime
-    orb.core.set_pause(math.huge)
-  end
-end
-
-
-local function get_passive_target(res, obj, dist)
-  if dist > (menu.auto.p.dist:get() + 500) then
-    return
-  end
-  if (dist < menu.auto.p.dist:get() and (100 + (25 * player.levelRef)) > obj.health) then
-    res.obj = obj
-    return true
-  else
-    if dist < menu.auto.p.dist:get() then
-      res.obj = obj
-      return true
-    end
-  end
-end
-
-local function get_action()
-  if core.on_end_func and os.clock() + network.latency > core.on_end_time then
-    core.on_end_func()
-  end
-  if menu.auto.p.use:get() and CheckBuff(player, "kogmawicathiansurprise") then
-    local target = ts.get_result(core.get_passive_target, ts.filter_set[8], true, true)
-    if target.obj then
-      local pos = target.obj.path.serverPos
-      local dist = player.path.serverPos:dist(pos)
-      if dist < (menu.auto.p.dist:get() - 50) then
-        orb.core.set_pause_move(5)
-        player:move(pos)
-      end
-    end
-  end
-  if menu.auto.q.kill:get() and is_readyq() then
-    if invoke_killstealq() then
-      return
-    end
-  end
-  if menu.auto.r.kill:get() and is_readyr() then
-    if invoke_killstealr() then
-      return
-    end
-  end
-  if menu.auto.r.dash:get() and is_readyr() then
-    if invoke__on_dash() then
-      return
-    end
-  end
-  if menu.semi_r:get() and is_readyr() then
-    local target = ts.get_result(function(res, obj, dist)
-      if dist > 2500 then
-        return
-      end
-      local seg = gpred.circular.get_predictionr(r.predinput, obj)
-      local range = r.range[r.slot.level] * r.range[r.slot.level]
-      if seg and seg.startPos:distSqr(seg.endPos) <= range then
-        res.obj = obj
-        res.seg = seg
-        return true
-      end
-    end)
-    if target.seg and target.obj then
-      player:castSpell("pos", 3, vec3(target.seg.endPos.x, target.obj.y, target.seg.endPos.y))
-      orb.core.set_server_pause()
-    end
-  end
-  if orb.combat.is_active() then
-    if menu.combo.items.botrk:get() then
-      local target = ts.get_result(function(res, obj, dist)
-        if dist > 1000 or GetPercentHealth(target) > menu.combo.items.botrk_at_hp:get() then
-          return
-        end
-        if dist <= GetAARange(obj) then
-          local aa_damage = CalculateAADamage(obj)
-          if (aa_damage * 2) > GetShieldedHealth("AD", obj) then
-            return
-          end
-        end
-        if dist < 550 then
-          res.obj = obj
-          return true
-        end
-      end).obj
-      if target then
-        for i = 6, 11 do
-          local slot = player:spellSlot(i)
-          if slot.isNotEmpty and (slot.name == 'BilgewaterCutlass' or slot.name == 'ItemSwordOfFeastAndFamine') and slot.state == 0 then
-            player:castSpell("obj", i, target)
-            orb.core.set_server_pause()
-            break
-          end
-        end
-      end
-    end
-    if menu.combo.e.use:get() == 2 then
-      if is_readye() and GetPercentPar() >= menu.combo.e.mana_mngr:get() and get_predictione() then
-        invoke_actione()
-        return
-      end
-    end
-    if menu.combo.q.q:get() then
-      if is_readyq() and GetPercentPar() >= menu.combo.q.mana_mngr:get() and get_predictionq() then
-        invoke_actionq()
-        return
-      end
-    end
-    if menu.combo.w.w:get() and orb.core.can_attack() then
-      if is_readyw() and GetPercentPar() >= menu.combo.w.mana_mngr:get() and get_predictionw() then
-        invoke_actionw()
-        return
-      end
-    end
-    if menu.combo.r.r:get() and not orb.core.is_attack_paused() then
-      if is_readyr() and r.stacks <= menu.combo.r.stacks:get() and get_predictionr() then
-        invoke_actionr()
-        return
-      end
-    end
-  end
-  if orb.menu.hybrid:get() then
-    if menu.harass.e.use:get() == 2 then
-      if is_ready() and GetPercentPar() >= menu.harass.e.mana_mngr:get() and get_predictione() then
-        invoke_actione()
-        return
-      end
-    end
-    if menu.harass.q.q:get() then
-      if is_readyq() and GetPercentPar() >= menu.harass.q.mana_mngr:get() and get_predictionq() then
-        invoke_actionq()
-        return
-      end
-    end
-    if menu.harass.w.w:get() and orb.core.can_attack() then
-      if is_readyw() and GetPercentPar() >= menu.harass.w.mana_mngr:get() and get_predictionw() then
-        invoke_actionw()
-        return
-      end
-    end
-    if menu.harass.r.r:get() and not orb.core.is_attack_paused() then
-      if is_readyr() and r.stacks <= menu.harass.r.stacks:get() and get_predictionr()then
-        invoke_actionr()
-        return
-      end
-    end
-  end
-  if orb.menu.lane_clear:get() then
-    if menu.clear.e.e:get() then
-      if is_readye() and GetPercentPar() >= menu.clear.w.mana_mngr:get() then
-        invoke__lane_cleare()
-        return
-      end
-    end
-    if menu.clear.w.w:get() then
-      if is_readyw() and GetPercentPar() >= menu.clear.w.mana_mngr:get() then
-        invoke__lane_clearw()
-        return
-      end
-    end
-  end
-end
-
-local function on_recv_spell(spell)
-  if core.f_spell_map[spell.name] then
-    core.f_spell_map[spell.name](spell)
-  end
-end
-
-core.f_spell_map["KogMawQ"] = core.on_cast_q
-core.f_spell_map["KogMawVoidOoze"] = core.on_cast_e
-core.f_spell_map["KogMawLivingArtillery"] = core.on_cast_r
-
-local function OnDraw()
-  if menu.draws.q_range:get() and q.slot.level > 0 and is_readyq() then
-    graphics.draw_circle(player.pos, q.range, menu.draws.width:get(), menu.draws.q:get(), menu.draws.numpoints:get())
-  end 
-  if menu.draws.w_range:get() and w.slot.level > 0 and is_readyw() then
-    local extended_range = w.range[w.slot.level] + 65
-    graphics.draw_circle(player.pos, extended_range, menu.draws.width:get(), menu.draws.w:get(), menu.draws.numpoints:get())
-  end 
-  if menu.draws.e_range:get() and e.slot.level > 0 and is_readye() then
-    graphics.draw_circle(player.pos, e.range, menu.draws.width:get(), menu.draws.e:get(), menu.draws.numpoints:get())
-  end
-  if menu.draws.r_range:get() and r.slot.level > 0  and is_readyr() then
-    graphics.draw_circle(player.pos, r.range[r.slot.level], menu.draws.width:get(), menu.draws.r:get(), menu.draws.numpoints:get())
-  end
+local function on_tick()
+get_action()
 end 
 
-local function OnTick()
-  if CheckBuff(player, "kogmawlivingartillerycost") then
-    r.stacks = math.min(10, buff.stacks + 1)
-  else 
-    r.stacks = 0
+  local function OnTick()
+    on_update_buff()
+    on_remove_buff()
+    
   end 
-  get_action()
-end 
 
-
+f_spell_map["KogMawQ"] = on_cast_q
+f_spell_map["KogMawVoidOoze"] = on_cast_e
+f_spell_map["KogMawLivingArtillery"] = on_cast_r
 
 cb.add(cb.tick, OnTick)
-cb.add(cb.draw, OnDraw)
+--cb.add(cb.draw, OnDraw)
+cb.add(cb.spell, on_recv_spell)
+orb.combat.register_f_pre_tick(on_tick)
 orb.combat.register_f_after_attack(on_after_attack)
