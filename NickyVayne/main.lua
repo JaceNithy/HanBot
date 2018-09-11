@@ -136,7 +136,7 @@ local interruptableSpells = {
 }
 
 local function ST(res, obj, Distancia)
-    if Distancia >= 1000 then 
+    if Distancia > 1000 then 
         return true
     end 
     res.obj = obj
@@ -238,6 +238,10 @@ local function GetWallPosition(target, range)
     end
 end
 
+local function IsQEvade(t,f,x)
+    return EvadeInternal.core.is_action_safe(t, f, x)
+end 
+
 local function FlashE()
     for i = 0, objManager.enemies_n - 1 do
 		local enemy = objManager.enemies[i]
@@ -245,7 +249,7 @@ local function FlashE()
             if IsValidTarget(enemy, 700) and (FlashSlot and player:spellSlot(FlashSlot).state == 0) and player:spellSlot(2).state == 0  then
                 targetPos = enemy.pos
                 playerPos = player.pos
-                wallPos = GetWallPosition(enemy, 400)
+                wallPos = GetWallPosition(enemy, 435)
                 
                 if (wallPos) then
                     insecPos = targetPos + (targetPos - wallPos):norm() * 200
@@ -443,51 +447,13 @@ local function Clear()
 	end
 end
 
-local function CastQ(target, force)
-    local castPos = nil
-
-    local wallPos = GetWallPosition(target, 140)
-    local qToEPos = GetWallPosition(target, 200)
-    local kitePos = GetKitePosition(target)
-    local playerPos = vec3(player.x, player.y, player.z)
-    local mousePos = game.mousePos
-    local final = playerPos:ext(mousePos, 500)
-    local castPos = final
-
-    if (kitePos) then
-        if qToEPos and player:castSpell("obj", 2, target) and force then
-            tPos = target.pos
-            newPos = tPos + (tPos - qToEPos):norm() * 100
-            if (GetDistance(newPos) < 300) then
-                player:castSpell("pos", 0, newPos)
-            end 
-        end 
-    end 
-    if (wallPos) then
-        if qToEPos and player:castSpell("obj", 2, target) and force then
-            tPos = target.pos
-            newPos = tPos + (tPos - qToEPos):norm() * 100
-            if (GetDistance(newPos) < 300) then
-                player:castSpell("pos", 0, newPos)
-            end 
-        end 
-    end 
-    if GetDistance(target) > player.attackRange + 70 then
-        player:castSpell("pos", 0, target.pos)
-    end 
-    for i = 0, objManager.allies_n - 1 do
-        local target = objManager.allies[i]
-        if #count_enemies_in_range(player.pos, 1000) >= 2 then
-            local ddddd = player.pos + (target.pos - player.pos):norm() * -150
-            player:castSpell("pos", 0, vec3(ddddd))
+local function CastQ(target)
+    local range = 300 + player.attackRange + (player.boundingRadius + target.boundingRadius)
+    if GetDistance(target) <= range then
+        if IsQEvade(game.mousePos, math.huge, 0.25) then
+            player:castSpell("pos", 0, game.mousePos)
         end
-    end   
-    if player:spellSlot(0).state == 0 then
-        local tpos = GetSmartTumblePos(target)
-        player:castSpell("pos", 0, tpos)
-        orb.combat.set_invoke_after_attack(false)
-    end
-
+    end 
 end
 
 local function CastR(target)
@@ -501,7 +467,7 @@ local function Combo()
     local target = GetTargetSelector()
     if ValidTarget(target) then
         if menu.MQ.AFO:get() == 1 then
-            CastQ(target, false)
+            CastQ(target)
         end
         Condemn(target) 
         CastR(target)    
@@ -513,13 +479,17 @@ local function ComboIsReday()
     local target = GetTargetSelector()
     if ValidTarget(target) then
         if menu.MQ.AFO:get() == 2 then
-            CastQ(target, false)
+            CastQ(target)
         end
         Condemn(target)     
     end
 end
 
 local function OnDraw() 
+    local target = GetTargetSelector()
+    if ValidTarget(target) then
+        graphics.draw_circle(target.pos, 70, 2, graphics.argb(255, 255, 255, 255), 100) 
+    end
 
 end
 
