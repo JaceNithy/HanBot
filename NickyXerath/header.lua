@@ -1,8 +1,9 @@
 return {
-    id = 'NickyXerath',
-    name = 'NickyXerath',
-    riot = true,
-    load = function()
-      return player.charName == 'Xerath'
-    end
+  id = '[Nicky]Xerath',
+  name = '[Nicky]Xerath',
+  riot = true,
+  type = "Champion",
+  load = function()
+    return player.charName == 'Xerath'
+  end
 }
