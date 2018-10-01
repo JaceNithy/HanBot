@@ -36,6 +36,33 @@ local spellsToSilence = {
 	["Xerath"] = { 0, 3 }
 }
 
+local delayedActions, delayedActionsExecuter = {}, nil
+
+local function DelayAction(func, delay, args) 
+    if not delayedActionsExecuter then
+        function delayedActionsExecuter()
+            for t, funcs in pairs(delayedActions) do
+                if t <= game.time then
+                    for i = 1, #funcs do
+                        local f = funcs[i]
+                        if f and f.func then
+                            f.func(unpack(f.args or {}))
+                        end 
+                    end 
+                    delayedActions[t] = nil
+                end 
+            end 
+        end 
+        cb.add(cb.tick, delayedActionsExecuter)
+    end 
+    local t = game.time + (delay or 0)
+    if delayedActions[t] then
+        delayedActions[t][#delayedActions[t] + 1] = {func = func, args = args}
+    else
+        delayedActions[t] = {{func = func, args = args}}
+    end
+end
+
 --API
 local function CheckBuffType(obj, bufftype)
     if obj then
@@ -154,7 +181,32 @@ end
 local function IsReady(spell)
     return player:spellSlot(spell).state == 0
 end 
+
+local function MagicReduction(target, damageSource)
+    local damageSource = damageSource or player
+    local magicResist = (target.spellBlock * damageSource.percentMagicPenetration) - damageSource.flatMagicPenetration
+    return magicResist >= 0 and (100 / (100 + magicResist)) or (2 - (100 / (100 - magicResist)))
+  end
+  
+  local function DamageReduction(damageType, target, damageSource)
+    local damageSource = damageSource or player
+    local reduction = 1
+    if damageType == "AD" then
+    end
+    if damageType == "AP" then
+    end
+    return reduction
+  end
+  
 --
+local function CalculateMagicDamage(target, damage, damageSource)
+    local damageSource = damageSource or player
+    if target then
+      return (damage * MagicReduction(target, damageSource)) * DamageReduction("AP", target, damageSource)
+    end
+    return 0
+  end
+
 local function RealDamageMagic(target, damage)
     if CheckBuff(target, "KindredRNoDeathBuff") or CheckBuff(target, "JudicatorIntervention") or CheckBuff(target, "FioraW") or CheckBuff(target, "ShroudofDarkness")  or CheckBuff(target, "SivirShield") then
         return 0  
@@ -186,7 +238,7 @@ local function DamageR(target)
         if player:spellSlot(3).state == 0 then
 			Damage = (DamageAP[player:spellSlot(3).level] + 0.43 * (player.flatMagicDamageMod * player.percentMagicDamageMod))
         end
-		return Damage
+		return CalculateMagicDamage(target, Damage) 
 	end
 	return 0
 end
@@ -325,7 +377,7 @@ local function IsCombo(target)
                 local Qpred = pred.linear.get_prediction(PredQ, target)
                 if not Qpred then return end
                 if not pred.collision.get_prediction(PredQ, Qpred, target) then
-                    player:castSpell("release", 0, vec3(Qpred.endPos.x, game.mousePos.y, Qpred.endPos.y))
+                    DelayAction(function() player:castSpell("release", 0, vec3(Qpred.endPos.x, game.mousePos.y, Qpred.endPos.y)) end, 0.2)
                 end 
             end 
         end 
@@ -392,10 +444,10 @@ local function OnTick()
             CanCastR(target)
         end
     end 
-    local target = TargetSelecton(6000)
+    local target = TargetSelecton(5000)
     if target and IsValidTarget(target) then
-        if r.RCharge == true and RealDamageR(target) >= target.health then
-            if player.pos:dist(target.pos) <= 6000 then
+        if r.RCharge == true and RealDamageR(target) > target.health then
+            if player.pos:dist(target.pos) < 5000 then
                 local RpRED = pred.circular.get_prediction(PredR, target)
                 if not RpRED then return end
                 player:castSpell("pos", 3, vec3(RpRED.endPos.x, target.pos.y, RpRED.endPos.y))  
@@ -421,12 +473,16 @@ local function OnDraw()
             end 
             if IsReady(3) and MenuXerath.Dt.DR:get() then
                 graphics.draw_circle(player.pos, r.Range, 2, graphics.argb(255, 255, 204, 255), 100)
-            end  
-            local target = TargetSelecton(6000)
-            if target and IsValidTarget(target) then 
-                DrawDamages(target)
-            end    
+            end   
         end
+        local target = TargetSelecton(5000)
+        if target and IsValidTarget(target) and not player.isDead then 
+            DrawDamages(target)
+            if RealDamageR(target) > target.health and player.pos:dist(target.pos) < 5000 then
+                graphics.draw_circle(target.pos, 110, 2, graphics.argb(255, 0, 255, 0), 50)
+                graphics.draw_line(player.pos, target.pos, 2, graphics.argb(255, 255, 255, 0))
+            end
+        end  
     end 
 end 
 
