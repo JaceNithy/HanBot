@@ -613,7 +613,7 @@ local function DamageQ(target)
         if player:spellSlot(0).state == 0 then
 			Damage = (DamageAP[player:spellSlot(0).level] + bonusR[player:spellSlot(0).level] * player.baseAttackDamage + player.flatPhysicalDamageMod * 1 + player.percentPhysicalDamageMod)
         end
-		return Damage
+		return CalculatePhysicalDamage(target, Damage)
 	end
 	return 0
 end
@@ -624,9 +624,9 @@ local function DamageR(target)
 		local Damage = 0
 		local DamageAP = {250,475,700}
         if player:spellSlot(3).state == 0 then
-			Damage = (DamageAP[player:spellSlot(3).level] + 2 * player.baseAttackDamage + player.flatPhysicalDamageMod * 1 + player.percentPhysicalDamageMod)
+			Damage = (DamageAP[player:spellSlot(3).level] + 2 * ((player.baseAttackDamage + player.flatPhysicalDamageMod)*(1 + player.percentPhysicalDamageMod)))
         end
-		return Damage
+		return CalculatePhysicalDamage(target, Damage)
 	end
 	return 0
 end
@@ -690,17 +690,18 @@ local function Combo()
 				end
 			end
 			if player:spellSlot(2).level > 0 and menu.combo["EWhenClose"]:get() and flDistance < 300 then
-				local pos2 = preds.linear.get_prediction(spellE, enemy)
+        local pos2 = preds.linear.get_prediction(spellE, enemy)
+        if not preds.collision.get_prediction(spellE, pos2, enemy) then
 				if pos2 then
-					local ppos = vec3(pos2.endPos.x, enemy.pos.y, pos2.endPos.y)
+          local ppos = vec3(pos2.endPos.x, enemy.pos.y, pos2.endPos.y)
 					player:castSpell("pos", 2, ppos)
 					ComboTarget = enemy
 					UseNetCombo = true
 				end
 				
 			end
-		end
-
+    end
+  end
 	end
 end
 
@@ -773,11 +774,24 @@ local function OnSpell(spell)
 	end
 end
 	
+local function BuffAA()
+  for i = 0, objManager.enemies_n - 1 do
+		local enemies = objManager.enemies[i]
+        if enemies and IsValidTarget(enemies) and not CheckBuffType(enemies, 17) then
+         if vec3(enemies.x, enemies.y, enemies.z):dist(player) <= 1300 then
+          if (CheckBuff(enemies, "caitlynyordletrapinternal")) then
+        player:attack(enemies)
+        end
+       end
+        end
+     end
+  end   
 
 local function OnTick()
     if orb.menu.combat:get()
 	then
-		Combo()
+    Combo()
+    BuffAA()
 	end
 	
 	if menu.combo["SemiManualRMenuKey"]:get() then
@@ -793,14 +807,16 @@ local function OnTick()
 		
 		if target == nil then return end
 		
-		local pos2 = preds.linear.get_prediction(spellE, target)
+    local pos2 = preds.linear.get_prediction(spellE, target)
+    if not preds.collision.get_prediction(spellE, pos2, enemy) then
 		if pos2 then
 			local ppos = vec3(pos2.endPos.x, target.pos.y, pos2.endPos.y)
 			player:castSpell("pos", 2, ppos)
 			ComboTarget = target
 			UseNetCombo = true
 		end	
-	end
+  end
+end
 end
 
 cb.add(cb.draw, function()
@@ -815,13 +831,15 @@ orb.combat.register_f_after_attack(function()
 	local pos2 = preds.linear.get_prediction(spellE, target)
 					
 	if orb.menu.combat:get() and target.type == TYPE_HERO and IsValidTarget(target) then
-		if player.levelRef <= menu.combo.EBeforeLevel:get() and pos2 then
+    if player.levelRef <= menu.combo.EBeforeLevel:get() and pos2 then
+      if not preds.collision.get_prediction(spellE, pos2, enemy) then
 			local ppos = vec3(pos2.endPos.x, target.pos.y, pos2.endPos.y)
 			player:castSpell("pos", 2, ppos)
 			UseNetCombo = true
             ComboTarget = target
 			return
 		end
-	end
+  end
+end
 end
 )
