@@ -243,7 +243,7 @@ local function AutoR()
     local target = TargetSelecton(5000)
     if target and IsValidTarget(target) then
         local extended_range = q.Range[player:spellSlot(0).level] + 65
-        if ValidTargetRange(target, 5000) and ValidUlt(target) then
+        if ValidTargetRange(target, 5000) and ValidUlt(target) and player:spellSlot(3).state == 0  then
             if r_damage(target) > target.health and player.pos:dist(target.pos) > extended_range then
                 if #CountEnemyChampAroundObject(player.pos, 350) == 0 and #CountAllyChampAroundObject(target.pos, 500) == 0  then
                     local rpred = pred.linear.get_prediction(PredR, target)
