@@ -1,5 +1,5 @@
 local crypt = module.internal('crypt')
-crypt.enc_f(hanbot.luapath .. "/NickyMissFortune,/MissFortune.lua", hanbot.luapath .. "/NickyMissFortune/MissFortune_enc.lua")
+crypt.enc_f(hanbot.luapath .. "/NickyMissFortune/MissFortune.lua", hanbot.luapath .. "/NickyMissFortune/MissFortune_enc.lua")
 --
 local pred = module.internal("pred")
 local ts = module.internal('TS')
